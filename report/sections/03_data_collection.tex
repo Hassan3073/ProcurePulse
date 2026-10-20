@@ -1,2 +1,183 @@
 % Owner: Hassan
 \section{Data Collection}
+\label{sec:collection}
+
+\subsection{Data Sources}
+
+We collected daily data from 1 January 2010 to 20 October 2026 for four metals
+and four external signals (Table~\ref{tab:sources}). All sources are public and
+free. Metal prices are \emph{continuous front-month futures} prices, which is
+the benchmark that physical metal suppliers price against.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{llllr}
+    \toprule
+    Column & Description & Source (ID) & Frequency & Rows \\
+    \midrule
+    \texttt{gold}     & COMEX gold futures, USD/oz       & Yahoo Finance (\texttt{GC=F})      & Daily   & 4,225 \\
+    \texttt{silver}   & COMEX silver futures, USD/oz     & Yahoo Finance (\texttt{SI=F})      & Daily   & 4,224 \\
+    \texttt{copper}   & COMEX copper futures, USD/lb     & Yahoo Finance (\texttt{HG=F})      & Daily   & 4,225 \\
+    \texttt{platinum} & NYMEX platinum futures, USD/oz   & Yahoo Finance (\texttt{PL=F})      & Daily   & 4,223 \\
+    \texttt{dxy}      & US Dollar Index                  & Yahoo Finance (\texttt{DX-Y.NYB}) & Daily   & 4,226 \\
+    \texttt{wti}      & WTI crude oil futures, USD/bbl   & Yahoo Finance (\texttt{CL=F})      & Daily   & 4,225 \\
+    \texttt{us10y}    & 10-year US Treasury yield, \%    & Yahoo Finance (\texttt{\textasciicircum TNX}) & Daily & 4,223 \\
+    \texttt{cpi}      & US Consumer Price Index (SA)     & BLS (\texttt{CUSR0000SA0})         & Monthly & 201 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Data sources. Rows are the number of observations downloaded
+           between January 2010 and October 2026.}
+  \label{tab:sources}
+\end{table}
+
+\textbf{Why these external signals.} Each one is a widely cited driver of metal
+prices, and testing whether they improve forecasts is part of our project:
+\begin{itemize}
+  \item \textbf{US Dollar Index:} metals are priced in US dollars, so a stronger
+        dollar makes them more expensive for other buyers and tends to push
+        prices down.
+  \item \textbf{10-year Treasury yield:} gold pays no interest, so when
+        interest rates rise, holding gold becomes less attractive compared with
+        bonds.
+  \item \textbf{WTI crude oil:} oil feeds into mining and transport costs and
+        into general inflation.
+  \item \textbf{Consumer Price Index:} gold is often bought as a hedge against
+        inflation, which the CPI measures.
+\end{itemize}
+
+\subsection{Collection Method}
+
+Collection is done by three Python scripts in \texttt{data\_scripts/}, run in
+this order:
+\begin{enumerate}
+  \item \texttt{fetch\_metals.py} downloads the four metal futures from Yahoo
+        Finance using the \texttt{yfinance} library~\cite{a_yfinance} and saves
+        one CSV file per metal.
+  \item \texttt{fetch\_external.py} downloads the dollar index and oil from
+        Yahoo Finance, and the 10-year yield and CPI from FRED~\cite{a_fred}.
+  \item \texttt{merge\_sources.py} joins all eight series on their date into one
+        table, \texttt{merged\_raw.csv}.
+\end{enumerate}
+
+Every download is retried up to three times, and each step writes a line to
+\texttt{data\_scripts/logs/collection.log} with the number of rows, the date
+range and the number of missing values. The log is our evidence of collection;
+a copy is included in the repository as \texttt{report/evidence/collection\_log.txt}.
+Raw data files are not uploaded to GitHub; anyone can recreate them by running
+the three scripts. All shared settings (tickers, start date and file paths) are
+kept in one file, \texttt{config.py}.
+
+\textbf{Backup sources.} During collection, FRED repeatedly refused or timed out
+the connection from our network. Instead of failing, \texttt{fetch\_external.py}
+automatically switched to backup sources, and recorded the switch in the log:
+\begin{itemize}
+  \item the 10-year yield was taken from Yahoo Finance's \texttt{\textasciicircum TNX}
+        (the CBOE 10-year Treasury yield index, quoted in percent), which tracks
+        FRED's \texttt{DGS10} series closely;
+  \item CPI was taken directly from the US Bureau of Labor Statistics
+        API~\cite{a_bls}, series \texttt{CUSR0000SA0}. This is the same
+        seasonally adjusted CPI that FRED republishes as \texttt{CPIAUCSL}. The
+        free API returns at most ten years per request, so the script requests
+        2010--2019 and 2020--2026 separately.
+\end{itemize}
+
+The output of the collection scripts is shown below and in
+Figure~\ref{fig:collection-run}.
+
+\begin{verbatim}
+gold (GC=F): 4225 rows, 2010-01-04 to 2026-10-20, 0 missing
+silver (SI=F): 4224 rows, 2010-01-04 to 2026-10-20, 0 missing
+copper (HG=F): 4225 rows, 2010-01-04 to 2026-10-20, 0 missing
+platinum (PL=F): 4223 rows, 2010-01-04 to 2026-10-20, 0 missing
+dxy (DX-Y.NYB): 4226 rows, 2010-01-04 to 2026-10-20, 0 missing
+wti (CL=F): 4225 rows, 2010-01-04 to 2026-10-20, 0 missing
+us10y: FRED unavailable, using backup source...
+us10y (Yahoo ^TNX): 4223 rows, 2010-01-04 to 2026-10-20, 0 missing
+cpi: FRED unavailable, using backup source...
+cpi (BLS CUSR0000SA0): 201 rows, 2010-01-01 to 2026-09-01, 1 missing
+merged_raw.csv: 4300 rows x 8 columns, 2010-01-01 to 2026-10-20
+\end{verbatim}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{evidence/collection_run.png}
+  \caption{Running the collection scripts in the terminal.}
+  \label{fig:collection-run}
+\end{figure}
+
+\subsection{Raw Data Description}
+
+The merged raw table has \textbf{4,300 rows and 8 columns}, one row for every
+date that appears in at least one source, from 1 January 2010 to 20 October
+2026. Gaps are deliberately left empty at this stage; they are handled in
+cleaning (Section~4). Figures~\ref{fig:raw-prices-p1} and~\ref{fig:raw-external}
+show the raw series, and Table~\ref{tab:missing} and Figure~\ref{fig:missing}
+summarise the missing values.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{raw/raw_external_signals.png}
+  \caption{Raw external signals, 2010--2026. Note the WTI oil futures price
+           falling below zero in April 2020.}
+  \label{fig:raw-external}
+\end{figure}
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{lrr}
+    \toprule
+    Column & Missing rows & Share of 4,300 rows \\
+    \midrule
+    \texttt{gold}     & 75    & 1.7\%  \\
+    \texttt{silver}   & 76    & 1.8\%  \\
+    \texttt{copper}   & 75    & 1.7\%  \\
+    \texttt{platinum} & 77    & 1.8\%  \\
+    \texttt{dxy}      & 74    & 1.7\%  \\
+    \texttt{wti}      & 75    & 1.7\%  \\
+    \texttt{us10y}    & 77    & 1.8\%  \\
+    \texttt{cpi}      & 4,100 & 95.3\% \\
+    \bottomrule
+  \end{tabular}
+  \caption{Missing values per column in \texttt{merged\_raw.csv}.}
+  \label{tab:missing}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{raw/missing_values.png}
+  \caption{Missing values per column in the raw merged data.}
+  \label{fig:missing}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{raw/raw_return_distributions.png}
+  \caption{Distribution of raw daily returns of the four metals (log scale).
+           The long tails show rare extreme days.}
+  \label{fig:raw-returns}
+\end{figure}
+
+\subsection{Data Quality Issues Found}
+
+Inspecting the raw data revealed the following issues, which are handled in
+Section~4:
+\begin{itemize}
+  \item \textbf{Gaps from different calendars.} About 75 rows (1.7--1.8\%) are
+        missing in each daily series because markets close on different
+        holidays, so a date present in one source can be absent in another.
+  \item \textbf{Mixed frequencies.} CPI is published monthly, so 95\% of the
+        daily rows have no CPI value. One month is also missing in the BLS
+        series itself.
+  \item \textbf{An impossible price.} WTI oil futures closed at about
+        $-\$37$ per barrel on 20 April 2020 (Figure~\ref{fig:raw-external}). This
+        was a real event caused by an expiring contract, but a negative price
+        cannot be used for percentage returns.
+  \item \textbf{Extreme daily moves.} The largest one-day falls are
+        $-10.8\%$ for gold, $-19.0\%$ for platinum, $-22.3\%$ for copper and
+        $-31.3\%$ for silver (Figure~\ref{fig:raw-returns}). Some are genuine
+        market crashes; others may come from the way a continuous futures series
+        jumps from one contract to the next. They must be detected and treated
+        as outliers.
+\end{itemize}

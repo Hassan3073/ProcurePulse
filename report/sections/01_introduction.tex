@@ -1,2 +1,30 @@
 % Owner: Hassan
 \section{Introduction}
+\label{sec:intro}
+
+ProcurePulse is an AI-assisted tool that helps businesses decide \emph{when} to
+buy metals and whether a supplier's price is fair. It forecasts the prices of
+gold and other metals traded on COMEX, attaches a prediction interval to each
+forecast, and compares a supplier's quote with that forecast to recommend
+\textbf{Buy}, \textbf{Hold} or \textbf{Negotiate}. The project also tests
+whether external economic signals, such as the US dollar, interest rates, oil
+and inflation, improve forecast accuracy.
+
+This report covers the first deliverable, \emph{Problem Definition and Data
+Foundations}. Its objectives are to:
+\begin{enumerate}
+  \item define the real-world problem, the target users and why machine
+        learning is needed (Phase~1);
+  \item collect 16 years of daily market data from public sources with
+        reproducible, logged Python scripts (Phase~2);
+  \item clean the data, engineer features and explore it visually, producing a
+        dataset ready for modelling (Phase~2).
+\end{enumerate}
+
+The report is organised as follows. Section~\ref{sec:problem} defines the
+problem, the target audience and the AI justification. Section~\ref{sec:collection}
+describes the data sources, how the data was collected and what the raw data
+looks like. Section~4 explains how the data was cleaned, and Section~5 presents
+the feature strategy and the exploratory data analysis. Section~\ref{sec:conclusion}
+summarises the results and the plan for the next deliverable. All code is in
+the \texttt{data\_scripts/} folder of the project's GitHub repository.
