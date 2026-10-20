@@ -1,2 +1,25 @@
 % Owner: Hassan
 \section{Conclusion}
+\label{sec:conclusion}
+
+This deliverable established the foundations of ProcurePulse. We defined the
+problem: small and medium-sized businesses that buy metals face large and
+unpredictable price movements, and cannot easily judge whether a supplier's
+quote is fair. We identified procurement managers at such businesses as the
+target users, and argued that machine learning is needed because metal prices
+change regime, depend on several interacting signals and require measured
+uncertainty, which fixed rules cannot provide.
+
+We then built a reproducible data pipeline. Python scripts collect 16 years of
+daily data for four metals and four external signals from Yahoo Finance and the
+US Bureau of Labor Statistics, log every step, and fall back to backup sources
+when a source is unavailable. The raw data was merged into a single table of
+4,300 rows, its quality problems were documented, and it was then cleaned,
+turned into model-ready features and explored visually (Sections~4 and~5).
+
+In the next deliverable we will train and compare the forecasting models
+described in Section~\ref{sec:problem}: a naive baseline, ARIMA, Prophet,
+XGBoost and an LSTM. We will evaluate their accuracy and prediction intervals on
+the held-out test period, measure whether the external signals improve the
+forecasts, and use the best model to produce the first Buy/Hold/Negotiate
+recommendations.

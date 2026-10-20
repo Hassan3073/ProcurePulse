@@ -1,0 +1,20 @@
+2026-10-20 22:00:39,969 INFO gold (GC=F): 4225 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:00:42,846 INFO silver (SI=F): 4224 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:00:45,831 INFO copper (HG=F): 4225 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:00:48,384 INFO platinum (PL=F): 4223 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:15:56,866 INFO dxy (DX-Y.NYB): 4226 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:15:58,112 INFO wti (CL=F): 4225 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:16:20,876 WARNING DGS10: attempt 1 failed: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+2026-10-20 22:16:56,517 WARNING DGS10: attempt 2 failed: HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=30)
+2026-10-20 22:17:32,315 WARNING DGS10: attempt 3 failed: HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=30)
+2026-10-20 22:22:26,777 INFO dxy (DX-Y.NYB): 4226 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:22:29,147 INFO wti (CL=F): 4225 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:23:14,900 WARNING FRED DGS10: attempt 1 failed: HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=45)
+2026-10-20 22:24:05,647 WARNING FRED DGS10: attempt 2 failed: HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=45)
+2026-10-20 22:24:10,648 WARNING us10y: FRED unavailable, switching to backup source
+2026-10-20 22:24:13,849 INFO us10y (Yahoo ^TNX): 4223 rows, 2010-01-04 to 2026-10-20, 0 missing
+2026-10-20 22:24:59,602 WARNING FRED CPIAUCSL: attempt 1 failed: HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=45)
+2026-10-20 22:25:50,335 WARNING FRED CPIAUCSL: attempt 2 failed: HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=45)
+2026-10-20 22:25:55,335 WARNING cpi: FRED unavailable, switching to backup source
+2026-10-20 22:25:58,035 INFO cpi (BLS CUSR0000SA0): 201 rows, 2010-01-01 to 2026-09-01, 1 missing
+2026-10-20 22:26:00,194 INFO merged_raw.csv: 4300 rows x 8 columns, 2010-01-01 to 2026-10-20, missing per column: {'gold': 75, 'silver': 76, 'copper': 75, 'platinum': 77, 'dxy': 74, 'wti': 75, 'us10y': 77, 'cpi': 4100}
