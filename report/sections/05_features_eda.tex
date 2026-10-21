@@ -1,2 +1,146 @@
 % Owner: Sharjeel
 \section{Feature Strategy and Exploratory Data Analysis}
+\label{sec:features_eda}
+
+\subsection{Feature Engineering Strategy}
+
+Raw commodity prices and macroeconomic signals cannot be supplied directly to machine learning architectures without transformation. We construct temporal, autoregressive, rolling statistical, and cyclical features in \texttt{data\_scripts/feature\_engineering.py} using \texttt{pandas}~\cite{b_mckinney2010}. All feature transformations use strictly contemporaneous or historical information to ensure no lookahead bias. Table~\ref{tab:features_taxonomy} summarizes the engineered features.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{lll}
+    \toprule
+    Feature Name & Derivation & Predictive Rationale \\
+    \midrule
+    \texttt{ret\_<asset>} & Percentage change of asset price & Scale-free daily change across metals and signals \\
+    \texttt{ret\_us10y} & First difference of 10-year Treasury yield & Change in percentage points (yield quoted in \%) \\
+    \texttt{logret\_gold} & Logarithmic difference $\ln(P_t) - \ln(P_{t-1})$ & Continuous compounded returns for modeling \\
+    \texttt{gold\_lag1/5/20} & Shift gold price by 1, 5, and 20 trading days & Autoregressive persistence over 1 day, 1 week, 1 month \\
+    \texttt{gold\_ma7/ma30} & 7-day and 30-day rolling arithmetic mean & Short-term trend momentum and medium-term baseline \\
+    \texttt{gold\_vol30} & 30-day rolling standard deviation of \texttt{ret\_gold} & Dynamic return volatility and risk clustering \\
+    \texttt{month\_sin/cos} & $\sin(2\pi m / 12)$ and $\cos(2\pi m / 12)$ & Continuous cyclical monthly calendar encoding \\
+    \texttt{dow\_sin/cos} & $\sin(2\pi d / 5)$ and $\cos(2\pi d / 5)$ & Continuous cyclical trading day-of-week encoding \\
+    \midrule
+    \texttt{gold\_5d\_ahead} & Negative shift by 5 trading days & Regression target: expected price 1 trading week ahead \\
+    \texttt{direction\_5d} & Binary flag: $(\texttt{gold\_5d\_ahead} > \texttt{gold})$ & Classification target: 1 if future price rises, else 0 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Engineered features and forecasting targets. Forecasting targets are strictly excluded from model inputs.}
+  \label{tab:features_taxonomy}
+\end{table}
+
+We emphasize that \texttt{gold\_5d\_ahead} and \texttt{direction\_5d} are forward-looking prediction targets and are never included as model inputs. Constructing the rolling windows and forward targets reduces the dataset from 4,225 to 4,190 rows: 30 leading rows are lost to the 30-day rolling windows and lags, and 5 trailing rows are dropped because they have no 5-day-ahead future price. The resulting dataset contains 29 columns, including the binary \texttt{is\_outlier} flag.
+
+\subsection{Calendar Encoding and Categoricals}
+
+We encode calendar variables using cyclical sine and cosine transformations rather than one-hot encoding. One-hot encoding would add $12 + 5 = 17$ sparse binary columns and treat calendar intervals as mutually independent categories, discarding proximity. In contrast, trigonometric functions map calendar steps onto a continuous two-dimensional circle, preserving proximity between December and January as well as between Friday and Monday across the weekend. Because our dataset is structured in wide tabular time-series format, there are no text categories to one-hot encode, and \texttt{is\_outlier} is already a native binary indicator.
+
+\subsection{Chronological Dataset Partitioning}
+
+To evaluate model generalisation in a time-series setting, we partition the dataset strictly chronologically without shuffling. Random partitioning or cross-validation would mix future observations into training folds, causing temporal data leakage. Table~\ref{tab:splits} details the three non-overlapping chronological partitions.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{llrr}
+    \toprule
+    Split & Date Range & Rows & Share of \texttt{direction\_5d == 1} \\
+    \midrule
+    Train & 2010-02-17 to 2021-12-31 & 2,988 & 54.25\% \\
+    Validation & 2022-01-03 to 2023-12-29 & 502 & 51.79\% \\
+    Test & 2024-01-02 to 2026-10-13 & 700 & 60.86\% \\
+    \bottomrule
+  \end{tabular}
+  \caption{Chronological train, validation, and test partitions.}
+  \label{tab:splits}
+\end{table}
+
+The training split provides nearly twelve years of historical data covering varied market regimes. The validation split serves for hyperparameter tuning and model selection, while the test split provides an out-of-sample holdout spanning 2024 to late 2026.
+
+\subsection{Outlier Capping and Feature Scaling}
+
+We apply return capping and feature scaling strictly on the training set to prevent data leakage. Data leakage occurs when statistics from validation or test periods inform preprocessing parameters, creating artificially optimistic evaluation metrics.
+
+\paragraph{Return capping.}
+We identify all daily return columns (\texttt{ret\_*} and \texttt{logret\_*}) and compute $3\times\text{IQR}$ bounds ($[Q_1 - 3\times\text{IQR},\, Q_3 + 3\times\text{IQR}]$) strictly on the training split. We then clip returns in all three partitions using these training bounds. Across the partitions, 176 values were clipped in Train, 22 in Validation, and 102 in Test. Capped unscaled features are preserved in \texttt{data/processed/features\_unscaled.csv} for exploratory data analysis.
+
+\paragraph{Feature scaling.}
+Asset price levels trade near \$2,000 to \$4,000, whereas daily returns fluctuate around 0.01. Unscaled features would cause gradient-based estimators and distance metrics to be dominated entirely by nominal price magnitudes. We fit \texttt{StandardScaler} from \texttt{scikit-learn}~\cite{b_pedregosa2011} on the training partition across 22 continuous numerical features, then apply this fitted transformation to the validation and test sets. Targets (\texttt{gold\_5d\_ahead}, \texttt{direction\_5d}), the binary outlier flag (\texttt{is\_outlier}), and cyclical trigonometric encodings (\texttt{*\_sin}, \texttt{*\_cos}) are explicitly excluded from scaling. Min-max scaling will also be explored for recurrent neural network architectures (LSTM) in Deliverable 2.
+
+\paragraph{Distribution shift limitation.}
+Because gold prices rose substantially during 2024--2026 compared with the 2010--2021 training baseline, the post-scaling mean of gold in the test set is 8.35, while the validation mean is 1.94. These non-zero out-of-sample means are consistent with a train-only scaler operating under a structural regime shift. In Deliverable 2, we will evaluate whether forecasting returns or differenced series mitigates this nominal price scale divergence.
+
+\subsection{Exploratory Data Analysis}
+
+We performed exploratory analysis on the engineered and unscaled dataset to inspect relationships, class balances, distributional fat tails, seasonality, and volatility regimes.
+
+\paragraph{Return correlations.}
+Figure~\ref{fig:correlation_heatmap} displays the correlation matrix of daily percentage returns across metals and external indicators. Gold and silver exhibit the strongest positive co-movement with a daily return correlation of 0.79. In contrast, the US Dollar Index (\texttt{dxy}) displays an inverse correlation of $-0.37$ with gold, consistent with gold tending to move opposite to the dollar. The 10-year Treasury yield (\texttt{us10y}, measured as a daily change in percentage points) exhibits a negative correlation of $-0.24$ with gold, indicating that gold returns tend to be lower on days when yields rise.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{eda/correlation_heatmap.png}
+  \caption{Correlation matrix of daily percentage returns and 10-year yield changes across metals and macroeconomic indicators.}
+  \label{fig:correlation_heatmap}
+\end{figure}
+
+\paragraph{Target class balance.}
+Figure~\ref{fig:class_distribution} plots target label frequencies across the chronological partitions. In the training split, 1,621 days were classified as Up (54.3\%) and 1,367 as Down or Flat. In the validation split, 260 days were Up (51.8\%) and 242 Down. In the out-of-sample test split, 426 days were Up (60.9\%) and 274 Down. The target remains roughly balanced across train and validation, with a moderate upward shift in the test period reflecting recent market appreciation.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{eda/class_distribution.png}
+  \caption{Class balance of the 5-day ahead directional target (\texttt{direction\_5d}) across chronological partitions.}
+  \label{fig:class_distribution}
+\end{figure}
+
+\paragraph{Return distributions and heavy tails.}
+Figure~\ref{fig:return_distributions} presents daily return histograms with kernel density estimates for gold, silver, and copper. In uncapped daily returns, all three metals exhibit severe excess kurtosis: +6.7 for gold, +15.6 for silver, and +13.8 for copper, accompanied by negative skewness ($-0.60$ for gold, $-1.10$ for silver, and $-0.66$ for copper). Applying the $3\times\text{IQR}$ training-fitted cap reduces excess kurtosis to +1.7 for gold, +1.6 for silver, and +1.3 for copper, moderating extreme tail values while preserving the underlying distribution shape.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{eda/return_distributions.png}
+  \caption{Daily return distributions for gold, silver, and copper under $3\times\text{IQR}$ training-fitted capping.}
+  \label{fig:return_distributions}
+\end{figure}
+
+\paragraph{Outlier profiles before and after capping.}
+Figure~\ref{fig:outliers_before_after} compares boxplots of raw returns against capped returns. Evaluating whisker outliers using the standard $1.5\times\text{IQR}$ rule yields 224 raw versus 226 capped outliers for gold (with 44 values resting at the cap), 281 raw versus 285 capped outliers for silver (with 79 at the cap), and 200 raw versus 198 capped outliers for WTI crude (with 59 at the cap). Because capping enforces a $3\times\text{IQR}$ threshold while boxplot whiskers extend to $1.5\times\text{IQR}$, clipped observations still lie beyond the boxplot whiskers, but their extreme magnitude has been bounded.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{eda/outliers_before_after.png}
+  \caption{Return distributions across assets before and after $3\times\text{IQR}$ training-fitted capping.}
+  \label{fig:outliers_before_after}
+\end{figure}
+
+\paragraph{Seasonal decomposition.}
+Figure~\ref{fig:gold_decomposition} illustrates a multiplicative seasonal decomposition of monthly gold prices ($Y_t = T_t \times S_t \times I_t$, period 12) performed using \texttt{statsmodels}~\cite{b_seabold2010}. The estimated seasonal factor varies within a narrow band of 0.9797 to 1.0164, representing a maximum seasonal swing of about 3.67\%. Over the sample period, the smoothed decomposition trend component rose by 262.1\% (noting that the two-sided moving-average trend is undefined for the first and last six months), while raw gold closing prices rose by 269.8\%. This indicates that, in our sample, the multi-year trend accounts for much more of gold's price movement than annual calendar seasonality.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{eda/gold_decomposition.png}
+  \caption{Multiplicative seasonal decomposition of monthly gold prices into trend, seasonal factor, and residuals.}
+  \label{fig:gold_decomposition}
+\end{figure}
+
+\paragraph{Rolling volatility dynamics.}
+Figure~\ref{fig:gold_volatility} plots the 30-day rolling standard deviation of daily gold returns over the 2010--2026 timeline. Over the sample, the median rolling daily volatility is 0.91\%. The series reached a peak in our sample of 3.00\% on 3~March 2026, alongside a COVID-period peak of 2.40\% recorded on 24~March 2020. These peaks suggest that volatility varies across periods.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{eda/gold_volatility.png}
+  \caption{30-day rolling standard deviation of daily gold returns (2010--2026) with annotated volatility peaks.}
+  \label{fig:gold_volatility}
+\end{figure}
+
+\paragraph{Gold sensitivity to the US Dollar.}
+Figure~\ref{fig:gold_vs_dxy} displays a scatter plot and ordinary least squares linear regression of daily gold returns against daily returns of the US Dollar Index. The estimated Pearson correlation is $-0.369$, with a regression slope of $-0.857$ and an $R^2$ of 0.136. While the negative slope indicates that gold returns tend to move opposite to the dollar, the modest $R^2$ indicates that currency movements explain only a small share of daily gold return variance, suggesting that other features are likely needed to explain gold returns.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{eda/gold_vs_dxy.png}
+  \caption{Scatter plot and linear regression fit of daily gold returns versus US Dollar Index returns.}
+  \label{fig:gold_vs_dxy}
+\end{figure}

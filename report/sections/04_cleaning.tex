@@ -1,2 +1,55 @@
 % Owner: Sharjeel
 \section{Data Cleaning}
+\label{sec:cleaning}
+
+\subsection{Overview}
+
+The raw merged dataset (\texttt{merged\_raw.csv}) contains 4,300 rows and 8 columns, spanning from 1~January 2010 to 20~October 2026. Because each financial and macroeconomic series originates from independent reporting calendars and publishing frequencies, the merged data contains cross-calendar gaps, monthly reporting intervals, an unphysical negative contract price, and severe return outliers. We developed a sequential, leak-free cleaning pipeline in \texttt{data\_scripts/clean\_data.py} to resolve these issues systematically. All operations, row transitions, and column-level missing values were recorded during execution in our audit trail, preserved in \texttt{report/evidence/cleaning\_log.txt}.
+
+\subsection{Cleaning Pipeline Summary}
+
+Table~\ref{tab:cleaning_summary} outlines the sequence of cleaning operations, the respective methods applied, and the before-and-after observation counts across the dataset.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{llrr}
+    \toprule
+    Issue & Method & Before & After \\
+    \midrule
+    Duplicate dates & Keep last observation & 0 & 0 \\
+    Missing CPI (monthly, dated the 1st) & Forward-fill & 4,100 & 0 \\
+    Non-trading days (all four metals missing) & Drop rows & 4,300 & 4,225 rows \\
+    Short gaps in single series & Time interpolation, limit 3 consecutive trading days, inside only & 10 & 0 \\
+    Remaining missing & Dropna & 0 rows removed & 0 \\
+    Non-positive prices & Set NaN then time-interpolate & 1 value (WTI) & 0 \\
+    Outlier days ($3\times\text{IQR}$ on daily returns) & Flagged via \texttt{is\_outlier}, not deleted & 129 days flagged & 4,225 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Data cleaning pipeline summary showing the resolution method and effect of each sequential step.}
+  \label{tab:cleaning_summary}
+\end{table}
+
+The individual outlier counts detected across the price series are 31 for gold, 57 for silver, 12 for copper, 24 for platinum, 6 for the US Dollar Index (\texttt{dxy}), and 45 for WTI crude oil (\texttt{wti}). Across the entire series, 129 days are flagged as containing an outlier in at least one asset, representing about 3.0\% of the 4,225 trading days.
+
+\subsection{Methodological Justifications}
+
+\paragraph{Order of CPI forward-filling.}
+Consumer Price Index data is published monthly on the 1st calendar day of each month. Because the 1st of a month frequently coincides with a weekend or public holiday when exchange markets are closed, dropping non-trading days prior to forward-filling would discard the row bearing the newly released CPI figure, permanently losing that inflation update. By forward-filling the CPI column first, the newly published index level is propagated forward onto active subsequent trading dates. This forward-fill strictly projects past, officially published figures into the future and introduces zero lookahead leakage.
+
+\paragraph{Time interpolation for short gaps.}
+To bridge brief isolated exchange holidays where a single series is absent while other markets trade, we apply time-weighted interpolation, up to 3 consecutive missing trading days, inside only. Restricting interpolation to strictly inside boundaries ensures that missing values are only interpolated between known observations, preventing unconstrained extrapolation at the historical edges of the dataset.
+
+\paragraph{Return-based outlier detection.}
+We detect statistical outliers on daily percentage returns rather than raw price levels. Gold futures closed at about \$1,118 per ounce on 4~January 2010 and reached about \$4,134 on 20~October 2026. A fixed threshold applied to raw price levels would flag most recent trading days simply due to long-term nominal price growth. Daily returns are centred near zero and much closer to stationary than prices, providing a stable baseline for statistical dispersion metrics over a sixteen-year horizon.
+
+\paragraph{Three-times interquartile range threshold.}
+We adopt a $3\times\text{IQR}$ boundary ($[Q_1 - 3\times\text{IQR},\, Q_3 + 3\times\text{IQR}]$) rather than the standard Tukey $1.5\times\text{IQR}$ rule. Empirical financial returns possess heavy tails and volatility clustering; setting a $1.5\times\text{IQR}$ limit would label normal, high-volatility market sessions as anomalies. A $3\times\text{IQR}$ threshold reserves outlier labels for extreme tail moves.
+
+\paragraph{Flagging rather than row deletion.}
+We record outlier occurrences using a binary indicator column (\texttt{is\_outlier}) without removing or capping rows during data cleaning. Deleting rows breaks the contiguous chronological spacing required by autoregressive models and loses valid information from genuine historical market dislocations, such as the market turbulence of March 2020. Flagging preserves full historical variance while allowing downstream models to identify shock sessions explicitly.
+
+\paragraph{Impossible non-positive values.}
+Asset prices cannot be zero or negative in return computations, as division by non-positive bases yields undefined or uninterpretable percentage returns. In our raw dataset, the front-month WTI contract closed at $-\$37.63$ on 20~April 2020. We mask non-positive values in price columns as \texttt{NaN} and apply time-weighted interpolation to restore continuous, positive price series.
+
+All executed operations, step-by-step missing counts, and row counts were logged directly to \texttt{report/evidence/cleaning\_log.txt}.

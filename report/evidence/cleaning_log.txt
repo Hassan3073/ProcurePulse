@@ -1,0 +1,29 @@
+2026-10-21 08:45:40,952 INFO Loaded merged_raw.csv: 4300 rows, 2010-01-01 to 2026-10-20
+2026-10-21 08:45:40,953 INFO Duplicates check: 0 duplicate dates found. Rows: 4300 -> 4300
+2026-10-21 08:45:40,959 INFO Step 1 Forward-fill CPI: rows 4300 -> 4300, missing per column {'gold': 75, 'silver': 76, 'copper': 75, 'platinum': 77, 'dxy': 74, 'wti': 75, 'us10y': 77, 'cpi': 4100} -> {'gold': 75, 'silver': 76, 'copper': 75, 'platinum': 77, 'dxy': 74, 'wti': 75, 'us10y': 77, 'cpi': 0}
+2026-10-21 08:45:40,964 INFO Step 2 Drop non-trading days (all metals NaN): rows 4300 -> 4225, missing per column {'gold': 75, 'silver': 76, 'copper': 75, 'platinum': 77, 'dxy': 74, 'wti': 75, 'us10y': 77, 'cpi': 0} -> {'gold': 0, 'silver': 1, 'copper': 0, 'platinum': 2, 'dxy': 2, 'wti': 1, 'us10y': 4, 'cpi': 0}
+2026-10-21 08:45:41,007 INFO Step 3 Time-based interpolation (limit=3): rows 4225 -> 4225, missing per column {'gold': 0, 'silver': 1, 'copper': 0, 'platinum': 2, 'dxy': 2, 'wti': 1, 'us10y': 4, 'cpi': 0} -> {'gold': 0, 'silver': 0, 'copper': 0, 'platinum': 0, 'dxy': 0, 'wti': 0, 'us10y': 0, 'cpi': 0}
+2026-10-21 08:45:41,010 INFO Step 4 Drop remaining NaNs: rows 4225 -> 4225, missing per column {'gold': 0, 'silver': 0, 'copper': 0, 'platinum': 0, 'dxy': 0, 'wti': 0, 'us10y': 0, 'cpi': 0} -> {'gold': 0, 'silver': 0, 'copper': 0, 'platinum': 0, 'dxy': 0, 'wti': 0, 'us10y': 0, 'cpi': 0}
+2026-10-21 08:45:41,014 INFO Non-positive prices per column: {'gold': 0, 'silver': 0, 'copper': 0, 'platinum': 0, 'dxy': 0, 'wti': 1}
+2026-10-21 08:45:41,053 INFO Outlier days per column (k=3.0): {'gold': 31, 'silver': 57, 'copper': 12, 'platinum': 24, 'dxy': 6, 'wti': 45}
+2026-10-21 08:45:41,053 INFO Total flagged outlier days (is_outlier == 1): 129 out of 4225 days
+2026-10-21 08:45:41,141 INFO Cleaning pipeline complete: saved 4225 rows x 9 columns to cleaned.csv (2010-01-04 to 2026-10-20).
+2026-10-21 08:45:52,849 INFO features: loaded cleaned.csv with 4225 rows, 2010-01-04 to 2026-10-20
+2026-10-21 08:45:52,865 INFO features: dropped 35 rows (4225 -> 4190): 30 leading rows dropped due to 30-day rolling windows/lags, 5 trailing rows dropped because they have no 5-day-ahead price target.
+2026-10-21 08:45:52,872 INFO features: split Train size: 2988 rows (2010-02-17 to 2021-12-31), share of direction_5d == 1: 0.5425 (54.25%)
+2026-10-21 08:45:52,873 INFO features: split Val size: 502 rows (2022-01-03 to 2023-12-29), share of direction_5d == 1: 0.5179 (51.79%)
+2026-10-21 08:45:52,874 INFO features: split Test size: 700 rows (2024-01-02 to 2026-10-13), share of direction_5d == 1: 0.6086 (60.86%)
+2026-10-21 08:45:52,936 INFO features: 3xIQR return capping bounds fitted on Train only (2010-02-17 to 2021-12-31). Values clipped: Train=176, Val=22, Test=102.
+2026-10-21 08:45:53,226 INFO features: saved unscaled features to features_unscaled.csv (4190 rows)
+2026-10-21 08:45:53,301 INFO features: StandardScaler fitted on Train only (2010-02-17 to 2021-12-31). Post-scaling gold mean on Val: 1.9401, on Test: 8.3510 (non-zero confirms true out-of-sample evaluation without distribution leakage).
+2026-10-21 08:45:53,626 INFO features: saved features_train.csv (2988), features_val.csv (502), features_test.csv (700), and scaler.joblib to processed.
+2026-10-21 08:46:00,358 INFO eda: correlation_heatmap.png generated. Gold-Silver correlation: r = 0.79 (strongest co-movement); Gold-DXY correlation: r = -0.37 (negative currency hedge); Gold-US10Y correlation: r = -0.24 (opportunity cost of non-yielding bullion).
+2026-10-21 08:46:00,941 INFO eda: class_distribution.png generated. Train Up: 1621/2988 (54.3%); Val Up: 260/502 (51.8%); Test Up: 426/700 (60.9%).
+2026-10-21 08:46:03,088 INFO eda: return_distributions.png uncapped: gold (skew=-0.60, kurtosis=6.7); silver (skew=-1.10, kurtosis=15.6); copper (skew=-0.66, kurtosis=13.8).
+2026-10-21 08:46:03,088 INFO eda: return_distributions.png capped (3xIQR, train bounds): gold (skew=-0.12, kurtosis=1.7); silver (skew=-0.03, kurtosis=1.6); copper (skew=-0.05, kurtosis=1.3).
+2026-10-21 08:46:05,851 INFO eda: outliers_before_after.png generated. Whisker outliers (1.5xIQR raw -> capped): gold: 224 -> 226 (at bounds: 44), silver: 281 -> 285 (at bounds: 79), copper: 143 -> 143 (at bounds: 19), platinum: 163 -> 166 (at bounds: 34), dxy: 151 -> 148 (at bounds: 7), wti: 200 -> 198 (at bounds: 59)
+2026-10-21 08:46:06,968 INFO eda: decomposition trend component rose 262.1% (from $1235.96 to $4474.91)
+2026-10-21 08:46:06,968 INFO eda: raw gold price rose 269.8% (from $1117.70 to $4133.60)
+2026-10-21 08:46:06,968 INFO eda: gold_decomposition.png generated. Multiplicative seasonal range: [0.9797, 1.0164], maximum seasonal swing is 3.67%.
+2026-10-21 08:46:07,725 INFO eda: gold_volatility.png generated. All-time peak daily volatility: 3.00% on 2026-03-03 (2026 market surge); COVID-19 peak: 2.40% on 2020-03-24; Baseline median daily volatility: 0.91%.
+2026-10-21 08:46:08,406 INFO eda: gold_vs_dxy.png generated. Correlation r = -0.369, regression slope = -0.857, R-squared = 0.136. Strong inverse sensitivity confirms USD strength exerts downward pressure on bullion.
