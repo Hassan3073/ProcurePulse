@@ -1,15 +1,17 @@
 """Data cleaning pipeline for ProcurePulse.
 
-Cleans raw merged commodity prices and external signals by removing duplicates
-and resolving missing values with no lookahead bias.
+Cleans raw merged commodity prices and external signals by removing duplicates,
+handling missing values without lookahead bias, fixing impossible negative prices,
+and flagging extreme return shocks.
 """
 import argparse
 import logging
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
-from config import ALL_COLS, LOG_DIR, METAL_COLS, RAW_DIR
+from config import ALL_COLS, LOG_DIR, METAL_COLS, PRICE_COLS, PROCESSED_DIR, RAW_DIR
 
 # Set up file logger for cleaning audit trail
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -104,8 +106,76 @@ def handle_missing(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def fix_impossible_values(df: pd.DataFrame) -> pd.DataFrame:
+    """Identify and repair non-positive prices in PRICE_COLS.
+
+    Commodity and market index prices cannot be zero or negative in return calculations.
+    Notably, WTI crude oil fell to -$37.63 on 2020-04-20 due to physical storage saturation
+    at Cushing during May 2020 futures contract expiry. We mask non-positive values as NaN
+    and time-interpolate to restore continuity.
+    """
+    df = df.copy()
+
+    # Count non-positive observations in each price series
+    non_positive_counts = {col: int((df[col] <= 0).sum()) for col in PRICE_COLS}
+    msg_counts = f"Non-positive prices per column: {non_positive_counts}"
+    logging.info(msg_counts)
+    print(msg_counts)
+
+    # Replace values <= 0 with NaN only in PRICE_COLS
+    # us10y and cpi are excluded as yields and inflation can legitimately be zero or negative
+    df[PRICE_COLS] = df[PRICE_COLS].mask(df[PRICE_COLS] <= 0)
+
+    # Time-based interpolation repairs the masked negative or zero values
+    df = df.interpolate(method="time")
+
+    return df
+
+
+def flag_outliers(df: pd.DataFrame, k: float = 3.0) -> pd.DataFrame:
+    """Flag extreme one-day return shocks across PRICE_COLS using 3xIQR.
+
+    Outliers are detected on percentage returns (stationary) rather than price levels.
+    Uses conservative k=3.0 IQR to focus on severe market shocks rather than fat-tailed volatility.
+    Does NOT cap, winsorize, or delete rows; adds a binary 'is_outlier' column.
+    """
+    df = df.copy()
+
+    # Calculate 1-day percentage returns for price series
+    returns = df[PRICE_COLS].pct_change()
+
+    outlier_counts = {}
+    outlier_masks = pd.DataFrame(index=df.index)
+
+    for col in PRICE_COLS:
+        # Calculate IQR on available returns (row 0 NaN is ignored by quantile)
+        q1 = returns[col].quantile(0.25)
+        q3 = returns[col].quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - k * iqr
+        upper_bound = q3 + k * iqr
+
+        # Return comparison: NaN in row 0 evaluates to False automatically
+        col_outlier = (returns[col] < lower_bound) | (returns[col] > upper_bound)
+        outlier_masks[col] = col_outlier
+        outlier_counts[col] = int(col_outlier.sum())
+
+    # Flag a date if any price series experienced an outlier move on that day
+    df["is_outlier"] = outlier_masks.any(axis=1).astype(int)
+    total_flagged = int(df["is_outlier"].sum())
+
+    msg_outliers = f"Outlier days per column (k={k}): {outlier_counts}"
+    msg_total = f"Total flagged outlier days (is_outlier == 1): {total_flagged} out of {len(df)} days"
+    logging.info(msg_outliers)
+    logging.info(msg_total)
+    print(msg_outliers)
+    print(msg_total)
+
+    return df
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Clean raw merged commodity data (first half).")
+    parser = argparse.ArgumentParser(description="Clean raw merged commodity data.")
     # Allow user or automated scripts to provide a custom input CSV path
     parser.add_argument(
         "--input",
@@ -115,18 +185,26 @@ def main():
     )
     args = parser.parse_args()
 
-    # Pipeline execution
+    # Execute end-to-end cleaning pipeline
     df = load(args.input)
     df = remove_duplicates(df)
     df = handle_missing(df)
+    df = fix_impossible_values(df)
+    df = flag_outliers(df, k=3.0)
 
-    # Verification checks: ensure clean contract compliance
+    # Verification checks: ensure data contract compliance
     assert df.isna().sum().sum() == 0, f"Error: Dataset still contains {df.isna().sum().sum()} NaNs!"
     assert not df.index.duplicated().any(), "Error: Dataset still contains duplicate dates!"
+    assert (df[PRICE_COLS] > 0).all().all(), "Error: Dataset still contains non-positive prices!"
+
+    # Save cleaned output to PROCESSED_DIR / "cleaned.csv"
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = PROCESSED_DIR / "cleaned.csv"
+    df.to_csv(out_path, index_label="date")
 
     summary = (
-        f"Cleaning successful: {len(df)} clean rows x {len(df.columns)} columns, "
-        f"{df.index.min():%Y-%m-%d} to {df.index.max():%Y-%m-%d}, 0 NaNs remaining."
+        f"Cleaning pipeline complete: saved {len(df)} rows x {len(df.columns)} columns "
+        f"to {out_path.name} ({df.index.min():%Y-%m-%d} to {df.index.max():%Y-%m-%d})."
     )
     logging.info(summary)
     print(summary)
