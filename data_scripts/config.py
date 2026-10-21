@@ -1,4 +1,4 @@
-"""Shared paths and the data contract. Owned by Hassan; read-only for Sharjeel."""
+"""Shared paths and the data contract. Owned by Hassan Ashraf 24L3073; read-only for Sharjeel Shahid 24L3055."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
