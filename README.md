@@ -114,9 +114,27 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> 💡 If PowerShell refuses to run the activation script, skip it and call Python directly, e.g. `.\.venv\Scripts\python data_scripts/fetch_metals.py`.
+> 💡 If PowerShell refuses to run the activation script, skip it and call Python directly, e.g. `.\.venv\Scripts\python main.py`.
 
-**3. Run the pipeline** from the repository root, **in this order**:
+**3. Run the whole pipeline with one command** from the repository root:
+
+```bash
+python main.py
+```
+
+`main.py` runs the 7 steps below in order, shows which step it is on and how long each took, and stops at the first error, telling you where to resume.
+
+| Command | What it does |
+|---|---|
+| `python main.py` | Run all 7 steps |
+| `python main.py --skip-download` | Reuse the data already downloaded and run steps 4–7 only |
+| `python main.py --from 5` | Start at step 5, e.g. after fixing an error |
+| `python main.py --list` | Show the steps without running anything |
+
+<details>
+<summary><b>Or run the steps one by one</b></summary>
+
+<br>
 
 ```bash
 python data_scripts/fetch_metals.py          # 1  metal prices        -> data/raw/<metal>.csv
@@ -127,6 +145,8 @@ python data_scripts/clean_data.py            # 5  cleaning            -> data/pr
 python data_scripts/feature_engineering.py   # 6  features & splits   -> data/processed/features_*.csv
 python data_scripts/eda.py                   # 7  EDA charts          -> report/figures/eda/
 ```
+
+</details>
 
 ⏱️ The whole run takes a few minutes. Steps 1–3 need internet; steps 4–7 work offline. If FRED is blocked, step 2 pauses for about two minutes per series before switching to its backup source. That's expected.
 
@@ -210,6 +230,7 @@ procurepulse/
 │   ├── figures/               ← raw/ and eda/ charts
 │   ├── evidence/              ← collection screenshot and log copies
 │   └── refs_a.bib, refs_b.bib
+├── main.py                    ← run the whole pipeline with one command
 ├── requirements.txt
 └── README.md
 ```
