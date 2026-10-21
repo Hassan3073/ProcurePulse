@@ -53,9 +53,9 @@ Large firms have analysts and hedging desks for this. Smaller firms usually rely
 
 | Member | Responsibilities |
 |---|---|
-| **Hassan** (lead) | Problem definition (Phase 1), data collection scripts, raw-data charts, report introduction, data collection and conclusion |
-| **Sharjeel** | Data cleaning, feature engineering, exploratory data analysis (EDA), report sections on cleaning and features/EDA |
-| **Zunaira Tahir** | Fixing errors in the code and report, README, final report compilation and submission |
+| **Hassan Ashraf 24L3073** (lead) | Problem definition (Phase 1), data collection scripts, raw-data charts, report introduction, data collection and conclusion |
+| **Sharjeel Shahid 24L3055** | Data cleaning, feature engineering, exploratory data analysis (EDA), report sections on cleaning and features/EDA |
+| **Zunaira Tahir 24L3038** | Fixing errors in the code and report, README, final report compilation and submission |
 
 ---
 
