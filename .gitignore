@@ -23,3 +23,6 @@ report/*.out
 report/*.toc
 report/*.bbl
 report/*.blg
+
+# Model weights are hosted on Google Drive, never in Git
+models/

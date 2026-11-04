@@ -4,9 +4,9 @@
 \usepackage{graphicx, booktabs, float, hyperref}
 \hypersetup{hidelinks}
 \graphicspath{{figures/}}
-\title{ProcurePulse: Deliverable 1\\ \large Problem Definition \& Data Foundations}
-\author{Hassan Ashraf\\ 24L3073 \and Sharjeel Shahid\\ 24L3055 \and Zunaira Tahir\\ 24L3038}
-\date{October 2026}
+\title{ProcurePulse: Deliverable 2\\ \large Model Architecture \& Empirical Evaluation}
+\author{Hassan Ashraf\\ 24L-3073 \and Sharjeel Shahid\\ 24L-3055}
+\date{November 2026}
 \begin{document}
 \maketitle
 \tableofcontents
@@ -15,6 +15,11 @@
 \input{sections/03_data_collection}
 \input{sections/04_cleaning}
 \input{sections/05_features_eda}
+\IfFileExists{sections/07_classical_models.tex}{\input{sections/07_classical_models}}{}
+\IfFileExists{sections/08_deep_model.tex}{\input{sections/08_deep_model}}{}
+\IfFileExists{sections/09_evaluation.tex}{\input{sections/09_evaluation}}{}
+\IfFileExists{sections/10_error_bias.tex}{\input{sections/10_error_bias}}{}
+\IfFileExists{sections/11_contributions.tex}{\input{sections/11_contributions}}{}
 \input{sections/06_conclusion}
 \bibliographystyle{plain}
 \bibliography{refs_a,refs_b}

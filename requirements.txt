@@ -8,3 +8,5 @@ scikit-learn
 scipy
 statsmodels
 joblib
+torch
+pytest
