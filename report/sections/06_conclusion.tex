@@ -1,25 +1,43 @@
-% Owner: Hassan Ashraf 24L3073
+% Owner: Hassan Ashraf 24L-3073
 \section{Conclusion}
 \label{sec:conclusion}
 
-This deliverable established the foundations of ProcurePulse. We defined the
+Deliverable~1 established the foundations of ProcurePulse. We defined the
 problem: small and medium-sized businesses that buy metals face large and
 unpredictable price movements, and cannot easily judge whether a supplier's
-quote is fair. We identified procurement managers at such businesses as the
-target users, and argued that machine learning is needed because metal prices
-change regime, depend on several interacting signals and require measured
-uncertainty, which fixed rules cannot provide.
+quote is fair. We built a reproducible pipeline that collects 16 years of daily
+data for four metals and four external signals, cleans it and turns it into
+model-ready features (Sections~\ref{sec:collection} to~\ref{sec:features_eda}).
 
-We then built a reproducible data pipeline. Python scripts collect 16 years of
-daily data for four metals and four external signals from Yahoo Finance and the
-US Bureau of Labor Statistics, log every step, and fall back to backup sources
-when a source is unavailable. The raw data was merged into a single table of
-4,300 rows, its quality problems were documented, and it was then cleaned,
-turned into model-ready features and explored visually (Sections~4 and~5).
+Deliverable~2 trained and evaluated the first models. We framed the task as
+predicting whether the gold price will be higher in five trading days, and
+compared a majority baseline, logistic regression, a random forest and
+histogram gradient boosting (Section~\ref{sec:classical}) with an LSTM
+(Section~\ref{sec:deep}). All models were tuned with walk-forward
+cross-validation on the training years, selected on the validation years and
+tested once on 2024--2026 (Section~\ref{sec:evaluation}).
 
-In the next deliverable we will train and compare the forecasting models
-described in Section~\ref{sec:problem}: a naive baseline, ARIMA, Prophet,
-XGBoost and an LSTM. We will evaluate their accuracy and prediction intervals on
-the held-out test period, measure whether the external signals improve the
-forecasts, and use the best model to produce the first Buy/Hold/Negotiate
-recommendations.
+The results are modest and informative. The best test AUC is 0.60, so the
+direction of gold is only slightly predictable from these features. Logistic
+regression produced the most useful signal, with 70\% precision on its ``up''
+calls. The tree models ranked days better than chance but predicted ``down'' on
+every test day, because they rely on price levels that moved far outside the
+training range. Accuracy alone would have hidden all of this, which is why we
+report precision, recall, F1 and AUC-ROC and analyse errors by market regime
+(Section~\ref{sec:error-bias}).
+
+Deliverable~3 will build on these findings:
+
+\begin{itemize}
+  \item \textbf{Shift-resistant features}: replace raw price levels with
+        relative measures, such as the price relative to its 30-day average,
+        and retrain the models on a rolling window so they adapt to new price
+        levels.
+  \item \textbf{Calibrated decisions}: calibrate the predicted probabilities
+        and choose the decision threshold on the validation split instead of
+        using 0.5.
+  \item \textbf{Price forecasts with uncertainty}: add the regression models
+        planned in Deliverable~1 (ARIMA, Prophet and quantile models) to
+        produce prediction intervals, and combine them with the direction
+        signal to generate the final Buy, Hold and Negotiate recommendations.
+\end{itemize}
