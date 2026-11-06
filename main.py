@@ -1,13 +1,13 @@
-"""Run the whole ProcurePulse data pipeline with one command.
+"""Run the whole ProcurePulse pipeline with one command.
 
-    python main.py                   # all 7 steps, in order
-    python main.py --skip-download   # reuse data/raw/*.csv, run steps 4-7 only
-    python main.py --from 5          # start at step 5 (cleaning)
+    python main.py                   # all 11 steps, in order
+    python main.py --skip-download   # reuse data/raw/*.csv, start at step 4
+    python main.py --from 8          # modelling only: train, evaluate, analyse
     python main.py --list            # show the steps without running them
 
-Each step runs as its own Python process, exactly as if you had typed
-"python data_scripts/<script>.py", so every script keeps its own log file.
-The run stops at the first step that fails.
+Steps 1-7 (Deliverable 1) run as "python data_scripts/<script>.py".
+Steps 8-11 (Deliverable 2) run as "python -m <module>" from the repository root.
+Each step is its own Python process, and the run stops at the first step that fails.
 """
 import argparse
 import subprocess
@@ -26,6 +26,10 @@ STEPS = [
     ("clean_data.py", "Clean the data -> data/processed/cleaned.csv"),
     ("feature_engineering.py", "Build features, split and scale -> data/processed/"),
     ("eda.py", "Draw the EDA charts"),
+    ("src.classical.train_classical", "Tune and train the scikit-learn models -> results/"),
+    ("src.deep.train_lstm", "Train the LSTM with its final configuration -> results/"),
+    ("src.evaluation.evaluate", "Score every model -> results/metrics, results/tables"),
+    ("src.analysis.error_analysis", "Error analysis and bias check -> results/analysis"),
 ]
 FIRST_OFFLINE_STEP = 4
 
