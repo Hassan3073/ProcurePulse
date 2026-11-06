@@ -1,13 +1,13 @@
-"""Run the whole ProcurePulse data pipeline with one command.
+"""Run the whole ProcurePulse pipeline with one command.
 
-    python main.py                   # all 7 steps, in order
-    python main.py --skip-download   # reuse data/raw/*.csv, run steps 4-7 only
-    python main.py --from 5          # start at step 5 (cleaning)
+    python main.py                   # all 11 steps, in order
+    python main.py --skip-download   # reuse data/raw/*.csv, start at step 4
+    python main.py --from 8          # modelling only: train, evaluate, analyse
     python main.py --list            # show the steps without running them
 
-Each step runs as its own Python process, exactly as if you had typed
-"python data_scripts/<script>.py", so every script keeps its own log file.
-The run stops at the first step that fails.
+Steps 1-7 (Deliverable 1) run as "python data_scripts/<script>.py".
+Steps 8-11 (Deliverable 2) run as "python -m <module>" from the repository root.
+Each step is its own Python process, and the run stops at the first step that fails.
 """
 import argparse
 import subprocess
@@ -26,6 +26,10 @@ STEPS = [
     ("clean_data.py", "Clean the data -> data/processed/cleaned.csv"),
     ("feature_engineering.py", "Build features, split and scale -> data/processed/"),
     ("eda.py", "Draw the EDA charts"),
+    ("src.classical.train_classical", "Tune and train the scikit-learn models -> results/"),
+    ("src.deep.train_lstm", "Train the LSTM with its final configuration -> results/"),
+    ("src.evaluation.evaluate", "Score every model -> results/metrics, results/tables"),
+    ("src.analysis.error_analysis", "Error analysis and bias check -> results/analysis"),
 ]
 FIRST_OFFLINE_STEP = 4
 
@@ -34,7 +38,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run the ProcurePulse data pipeline.")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--from", dest="start", type=int, choices=range(1, len(STEPS) + 1),
-                       metavar="N", help="start at step N (1-7) instead of step 1")
+                       metavar="N", help=f"start at step N (1-{len(STEPS)}) instead of step 1")
     group.add_argument("--skip-download", action="store_true",
                        help="reuse the downloaded data and start at step 4")
     parser.add_argument("--list", action="store_true", help="list the steps and exit")
@@ -44,7 +48,11 @@ def parse_args():
 def run_step(number, script, description):
     print(f"\n{'=' * 64}\nStep {number}/{len(STEPS)}: {script}\n{description}\n{'=' * 64}", flush=True)
     started = time.time()
-    result = subprocess.run([sys.executable, str(SCRIPTS / script)], cwd=ROOT)
+    if script.endswith(".py"):
+        command = [sys.executable, str(SCRIPTS / script)]
+    else:
+        command = [sys.executable, "-m", script]
+    result = subprocess.run(command, cwd=ROOT)
     seconds = time.time() - started
     status = "done" if result.returncode == 0 else f"FAILED (exit code {result.returncode})"
     print(f"--> {script} {status} in {seconds:.0f}s", flush=True)
@@ -57,7 +65,7 @@ def main():
 
     if args.list:
         for number, (script, description) in enumerate(STEPS, start=1):
-            print(f"{number}. {script:<24} {description}")
+            print(f"{number:>2}. {script:<30} {description}")
         return 0
 
     timings = []
@@ -74,7 +82,7 @@ def main():
     total = sum(seconds for _, seconds in timings)
     print(f"\nAll {len(timings)} step(s) finished in {total / 60:.1f} min:")
     for script, seconds in timings:
-        print(f"  {script:<24} {seconds:6.0f}s")
+        print(f"  {script:<30} {seconds:6.0f}s")
     return 0
 
 
