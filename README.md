@@ -9,14 +9,18 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![pandas](https://img.shields.io/badge/pandas-data-150458?logo=pandas&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-preprocessing-F7931E?logo=scikitlearn&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-LSTM-EE4C2C?logo=pytorch&logoColor=white)
 ![LaTeX](https://img.shields.io/badge/Report-LaTeX-008080?logo=latex&logoColor=white)
-![Status](https://img.shields.io/badge/Deliverable%201-complete-2ea44f)
+![Status](https://img.shields.io/badge/Deliverable%202-complete-2ea44f)
 
 [The problem](#-the-problem) •
 [Team](#-team) •
 [Data](#-data-sources) •
 [Quick start](#-quick-start) •
 [Pipeline](#-how-the-pipeline-works) •
+[Models](#-deliverable-2-models) •
+[Results](#-results) •
+[Weights](#-model-weights) •
 [Report](#-report)
 
 </div>
@@ -51,11 +55,11 @@ Large firms have analysts and hedging desks for this. Smaller firms usually rely
 
 ## 👥 Team
 
-| Member | Responsibilities |
-|---|---|
-| **Hassan Ashraf 24L3073** (lead) | Problem definition (Phase 1), data collection scripts, raw-data charts, report introduction, data collection and conclusion |
-| **Sharjeel Shahid 24L3055** | Data cleaning, feature engineering, exploratory data analysis (EDA), report sections on cleaning and features/EDA |
-| **Zunaira Tahir 24L3038** | Fixing errors in the code and report, README, final report compilation and submission |
+| Member | Deliverable 1 | Deliverable 2 |
+|---|---|---|
+| **Hassan Ashraf 24L-3073** (lead) | Problem definition (Phase 1), data collection scripts, raw-data charts, report introduction, data collection and conclusion | Shared setup, scikit-learn models and tuning, evaluation module, `main.py` steps 8–11, report sections on classical models, evaluation, architecture and contributions, README |
+| **Sharjeel Shahid 24L-3055** | Data cleaning, feature engineering, exploratory data analysis (EDA), report sections on cleaning and features/EDA | PyTorch LSTM (dataset, model, training, tuning, curves), error analysis and bias check, report sections on the LSTM and the Bias Check |
+| **Zunaira Tahir 24L-3038** | Fixing errors in the code and report, README, final report compilation and submission | – |
 
 ---
 
@@ -122,13 +126,13 @@ pip install -r requirements.txt
 python main.py
 ```
 
-`main.py` runs the 7 steps below in order, shows which step it is on and how long each took, and stops at the first error, telling you where to resume.
+`main.py` runs the 11 steps below in order, shows which step it is on and how long each took, and stops at the first error, telling you where to resume.
 
 | Command | What it does |
 |---|---|
-| `python main.py` | Run all 7 steps |
-| `python main.py --skip-download` | Reuse the data already downloaded and run steps 4–7 only |
-| `python main.py --from 5` | Start at step 5, e.g. after fixing an error |
+| `python main.py` | Run all 11 steps: data (1–7), training (8–9), evaluation (10), error analysis (11) |
+| `python main.py --skip-download` | Reuse the data already downloaded and start at step 4 |
+| `python main.py --from 8` | Modelling only: train, evaluate and analyse on the existing feature files |
 | `python main.py --list` | Show the steps without running anything |
 
 <details>
@@ -144,11 +148,19 @@ python data_scripts/plot_raw.py              # 4  raw-data charts     -> report/
 python data_scripts/clean_data.py            # 5  cleaning            -> data/processed/cleaned.csv
 python data_scripts/feature_engineering.py   # 6  features & splits   -> data/processed/features_*.csv
 python data_scripts/eda.py                   # 7  EDA charts          -> report/figures/eda/
+python -m src.classical.train_classical      # 8  scikit-learn models -> results/predictions/, results/tuning/
+python -m src.deep.train_lstm                # 9  LSTM                -> results/predictions/lstm.csv, results/history/
+python -m src.evaluation.evaluate            # 10 evaluation          -> results/metrics/, results/tables/
+python -m src.analysis.error_analysis        # 11 error analysis      -> results/analysis/
 ```
 
 </details>
 
-⏱️ The whole run takes a few minutes. Steps 1–3 need internet; steps 4–7 work offline. If FRED is blocked, step 2 pauses for about two minutes per series before switching to its backup source. That's expected.
+⏱️ Steps 1–7 take a few minutes; steps 1–3 need internet. Step 8 (grid search) takes about 3–8 minutes and step 9 (LSTM on CPU) a few minutes more. If FRED is blocked, step 2 pauses for about two minutes per series before switching to its backup source. That's expected.
+
+```bash
+python -m pytest tests -q     # run the test suite (no data needed)
+```
 
 ---
 
@@ -207,6 +219,67 @@ flowchart LR
 
 ---
 
+## 🤖 Deliverable 2: Models
+
+**Task:** for each trading day, predict whether the gold price will be **higher five trading days later** (`direction_5d` = 1 for "up"). Every model reads the same feature files and writes its predictions in one shared format, `results/predictions/<model>.csv`.
+
+| Model | Framework | What it learns | Code |
+|---|---|---|---|
+| Majority baseline | scikit-learn | Always predicts the most common class ("up"); the bar to beat | `src/classical/` |
+| Logistic regression | scikit-learn | One weight per feature, linear decision boundary | `src/classical/` |
+| Random forest | scikit-learn | Average of many decision trees | `src/classical/` |
+| Hist. gradient boosting | scikit-learn | Shallow trees that correct each other's errors | `src/classical/` |
+| LSTM | PyTorch | Reads the last 60 days as a sequence: 2-layer LSTM → dense → probability | `src/deep/` |
+
+<details>
+<summary><b>🧪 How the models are validated</b></summary>
+
+<br>
+
+- **Chronological split** from Deliverable 1: train 2010–2021, validation 2022–2023, test 2024–2026. Never shuffled.
+- **Walk-forward cross-validation** (`TimeSeriesSplit`, 5 folds, 5-day gap) on the training years to tune the scikit-learn models, scored by AUC-ROC.
+- **Purging:** the last 5 rows of train and validation are dropped when fitting, because their labels look into the next period.
+- **Validation split** chooses the feature set (all 27 features vs 14 stationary ones) and stops LSTM training early; the **test split** is used once.
+- **Metrics:** accuracy, precision, recall, F1 and AUC-ROC. Accuracy alone misleads, because 61% of test weeks went up.
+
+</details>
+
+---
+
+## 📊 Results
+
+Test set: 2024 to October 2026, 701 trading days, 60.9% "up". Full table: [`results/tables/model_comparison.csv`](results/tables/model_comparison.csv).
+
+| Model | Accuracy | Precision | Recall | F1 | AUC-ROC (test) | AUC-ROC (validation) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| Majority baseline | 0.609 | 0.609 | 1.000 | 0.757 | 0.500 | 0.500 |
+| Logistic regression | 0.498 | **0.696** | 0.311 | 0.430 | 0.569 | 0.530 |
+| Random forest | 0.391 | 0.000 | 0.000 | 0.000 | 0.551 | 0.538 |
+| Hist. gradient boosting | 0.391 | 0.000 | 0.000 | 0.000 | **0.599** | 0.524 |
+| LSTM | 0.522 | 0.643 | 0.485 | **0.553** | 0.538 | **0.594** |
+
+**What this means**
+
+- 📉 **The signal is small.** The best test AUC is 0.60; gold's 5-day direction is only slightly predictable from these features.
+- ✅ **Logistic regression** gives the most reliable "up" calls (70% precision, above the 61% base rate).
+- ⚖️ **The LSTM** gives the most balanced predictions (best F1 of the learned models) and does not collapse to one class.
+- ⚠️ **The tree models predict "down" on every test day.** They rely on price levels, and gold in 2024–2026 traded far above anything in the training years; trees cannot extrapolate. The error analysis and **Bias Check** (`results/analysis/`, report) study this in detail.
+
+---
+
+## 💾 Model weights
+
+Trained weights are **not stored in Git** (`models/` is git-ignored). Download them here:
+
+| Weights | Files | Link | Put them in |
+|---|---|---|---|
+| scikit-learn models | `majority.joblib`, `logreg.joblib`, `random_forest.joblib`, `hist_gb.joblib` | [Google Drive](https://drive.google.com/drive/folders/1SpbdRzRhxFc9VdBoeib2zyG168_rObUI?usp=sharing) | `models/classical/` |
+| LSTM | `lstm_best.pt`, `lstm_config.json` | [Google Drive](LINK_LSTM) | `models/deep/` |
+
+You don't need them to reproduce the results: `python main.py --from 8` retrains every model from the feature files.
+
+---
+
 ## 📁 Repository structure
 
 ```text
@@ -224,12 +297,26 @@ procurepulse/
 │   ├── feature_engineering.py ← 6  features, split, capping, scaling
 │   ├── eda.py                 ← 7  EDA charts
 │   └── logs/                  ← run logs (copies in report/evidence/)
+├── src/                       ← Deliverable 2 code (run with python -m from the repo root)
+│   ├── classical/             ← data loader, 4 scikit-learn models, tuning and training
+│   ├── deep/                  ← LSTM dataset, model, training, tuning, curves
+│   ├── evaluation/            ← metrics, comparison table, ROC and confusion charts
+│   └── analysis/              ← error analysis by market regime, Bias Check
+├── results/                   ← small result files, committed
+│   ├── predictions/           ← <model>.csv for all 5 models (the shared format)
+│   ├── tuning/                ← every hyperparameter configuration tried
+│   ├── history/               ← LSTM loss and accuracy per epoch
+│   ├── metrics/, tables/      ← metrics.json, model_comparison.csv
+│   └── analysis/              ← segment_metrics.csv, bias_check.csv
+├── models/                    ← trained weights, never uploaded to GitHub (see Model weights)
+├── tests/                     ← pytest suite (python -m pytest tests -q)
 ├── report/                    ← LaTeX report
 │   ├── main.tex
 │   ├── sections/              ← one .tex file per section
-│   ├── figures/               ← raw/ and eda/ charts
+│   ├── figures/               ← raw/, eda/, classical/, deep/, evaluation/, analysis/, architecture/
 │   ├── evidence/              ← collection screenshot and log copies
-│   └── refs_a.bib, refs_b.bib
+│   ├── refs_a.bib, refs_b.bib
+│   └── ProcurePulse_Deliverable1.pdf, ProcurePulse_Deliverable2.pdf
 ├── main.py                    ← run the whole pipeline with one command
 ├── requirements.txt
 └── README.md
@@ -256,12 +343,12 @@ The technical report is in [`report/`](report/), written in LaTeX.
 
 - **Raw data is not on GitHub** (see `.gitignore`). Run the scripts to recreate it.
 - **Prices are continuous front-month futures**, which can jump when one contract rolls over to the next. Such jumps are among the extreme days flagged during cleaning.
-- **Results depend on the run date**, because the scripts always download data up to today.
+- **Results depend on the run date**, because the scripts always download data up to today. The Deliverable 2 results above were produced on one shared data download (test period ending 14 October 2026), so all five models are compared on exactly the same days.
 
 <div align="center">
 
 <br>
 
-*Built for the AI Project course, Deliverable 1: Problem Definition & Data Foundations.*
+*Built for the AI Project course. Deliverable 1: Problem Definition & Data Foundations · Deliverable 2: Model Architecture & Empirical Evaluation.*
 
 </div>
