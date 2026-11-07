@@ -19,12 +19,13 @@ tested once on 2024--2026 (Section~\ref{sec:evaluation}).
 
 The results are modest and informative. The best test AUC is 0.60, so the
 direction of gold is only slightly predictable from these features. Logistic
-regression produced the most useful signal, with 70\% precision on its ``up''
-calls. The tree models ranked days better than chance but predicted ``down'' on
-every test day, because they rely on price levels that moved far outside the
-training range. Accuracy alone would have hidden all of this, which is why we
-report precision, recall, F1 and AUC-ROC and analyse errors by market regime
-(Section~\ref{sec:error-bias}).
+regression produced the most reliable ``up'' signal, with 70\% precision on
+its ``up'' calls, and the LSTM, which uses only stationary features, gave the
+most balanced predictions (F1 0.55). The tree models ranked days better than
+chance but predicted ``down'' on every test day, because they rely on price
+levels that moved far outside the training range. Accuracy alone would have
+hidden all of this, which is why we report precision, recall, F1 and AUC-ROC
+and analyse errors by market regime (Section~\ref{sec:error-bias}).
 
 Deliverable~3 will build on these findings:
 
