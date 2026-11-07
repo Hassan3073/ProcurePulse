@@ -1,0 +1,18 @@
+model,feature_set,params,score_name,mean_score,std_score,selected
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 32, ""lr"": 0.001, ""window"": 20}",val_auc,0.3879052765416402,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 32, ""lr"": 0.001, ""window"": 20}",val_auc,0.5424666242848062,,0
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 32, ""lr"": 0.001, ""window"": 60}",val_auc,0.4448664971392244,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 32, ""lr"": 0.001, ""window"": 60}",val_auc,0.5323108709472346,,0
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 64, ""lr"": 0.001, ""window"": 20}",val_auc,0.5001112523839796,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 64, ""lr"": 0.001, ""window"": 20}",val_auc,0.48204068658614113,,0
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 64, ""lr"": 0.001, ""window"": 60}",val_auc,0.494135410044501,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.1, ""hidden"": 64, ""lr"": 0.001, ""window"": 60}",val_auc,0.5580260648442465,,0
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 32, ""lr"": 0.001, ""window"": 20}",val_auc,0.4365225683407501,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 32, ""lr"": 0.001, ""window"": 20}",val_auc,0.5193261284170375,,0
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 32, ""lr"": 0.001, ""window"": 60}",val_auc,0.45859821996185635,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 32, ""lr"": 0.001, ""window"": 60}",val_auc,0.5934520025429116,,1
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 64, ""lr"": 0.001, ""window"": 20}",val_auc,0.5149237126509854,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 64, ""lr"": 0.001, ""window"": 20}",val_auc,0.4906071201525747,,0
+lstm,all,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 64, ""lr"": 0.001, ""window"": 60}",val_auc,0.4780673871582962,,0
+lstm,stationary,"{""batch_size"": 32, ""dropout"": 0.3, ""hidden"": 64, ""lr"": 0.001, ""window"": 60}",val_auc,0.5429116338207247,,0
+lstm,all,"{""batch_size"": 64, ""dropout"": 0.1, ""hidden"": 32, ""lr"": 0.001, ""window"": 20}",val_auc,0.42776541640178,,0
