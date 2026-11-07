@@ -66,8 +66,7 @@ Table~\ref{tab:test-results} compares all models on the test set (threshold
     Logistic regression      & 0.498 & \textbf{0.696} & 0.311 & 0.430 & 0.569 \\
     Random forest            & 0.391 & 0.000 & 0.000 & 0.000 & 0.551 \\
     Hist.\ gradient boosting & 0.391 & 0.000 & 0.000 & 0.000 & \textbf{0.599} \\
-    % LSTM (copy from results/tables/model_comparison.csv after the Sunday re-run):
-    % LSTM                   & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 \\
+    LSTM                     & 0.522 & 0.643 & 0.485 & 0.553 & 0.538 \\
     \bottomrule
   \end{tabular}
   \caption{Test-set results (2024--2026, 701 days, 60.9\% up).}
@@ -90,10 +89,12 @@ Table~\ref{tab:test-results} compares all models on the test set (threshold
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.45\textwidth]{evaluation/confusion_logreg.png}
+  \includegraphics[width=0.32\textwidth]{evaluation/confusion_logreg.png}
   \hfill
-  \includegraphics[width=0.45\textwidth]{evaluation/confusion_random_forest.png}
-  \caption{Test-set confusion matrices of logistic regression (left) and random forest (right).}
+  \includegraphics[width=0.32\textwidth]{evaluation/confusion_random_forest.png}
+  \hfill
+  \includegraphics[width=0.32\textwidth]{evaluation/confusion_lstm.png}
+  \caption{Test-set confusion matrices of logistic regression (left), random forest (middle) and the LSTM (right).}
   \label{fig:confusion}
 \end{figure}
 
@@ -109,6 +110,15 @@ Table~\ref{tab:test-results} compares all models on the test set (threshold
         clearly above the 60.9\% base rate, but it is cautious and catches only
         31\% of rising weeks. For a buyer, a rare but reliable ``buy now''
         signal is more valuable than a frequent unreliable one.
+  \item \textbf{The LSTM gives the most balanced predictions.} It has the
+        best F1 of all learned models (0.553): it catches 48.5\% of rising
+        weeks (207 of 427) with 64.3\% precision, and predicts ``up'' on 46\%
+        of test days instead of collapsing to one class. It uses only the
+        stationary features (Section~\ref{sec:deep}), so the rise in price
+        levels does not push it to one side. Its ranking ability is weak,
+        however: the AUC falls from 0.594 on validation, the best of all
+        models, to 0.538 on test, another sign that the relationship between
+        features and direction changed between periods.
   \item \textbf{The tree models predict ``down'' on every one of the 701 test
         days} (recall 0, Figure~\ref{fig:confusion}), even though their AUC
         (0.551 and 0.599) shows that they still rank the days better than
