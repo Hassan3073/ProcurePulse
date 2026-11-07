@@ -213,3 +213,211 @@ def test_make_windows_pairs_each_window_with_its_last_label(processed_frames, wi
 
 
 # --- model tests (B2) go below ---
+
+from src.deep.model import LSTMClassifier, make_loss, make_optimizer
+
+
+@pytest.fixture
+def model_seed():
+    """Seed B2 tests without changing the caller's random state."""
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(42)
+        yield
+
+
+@pytest.fixture
+def model_n_features(processed_frames, feature_set, model_seed):
+    return len(get_feature_columns(feature_set))
+
+
+def test_model_forward_shape_and_dtype(model_n_features, window):
+    model = LSTMClassifier(model_n_features)
+    with torch.no_grad():
+        logits = model(torch.zeros(8, window, model_n_features))
+    assert logits.shape == (8,)
+    assert logits.dtype == torch.float32
+    assert torch.isfinite(logits).all()
+
+
+@pytest.mark.parametrize("bias", [-2.0, 2.0])
+def test_model_returns_unsquashed_logits(model_n_features, bias):
+    model = LSTMClassifier(model_n_features).eval()
+    x = torch.randn(8, 20, model_n_features) * 100
+    with torch.no_grad():
+        # A known output bias makes this an activation check, not a lucky draw.
+        model.head[-1].weight.zero_()
+        model.head[-1].bias.fill_(bias)
+        logits = model(x)
+    assert logits.dtype == torch.float32
+    assert torch.isfinite(logits).all()
+    torch.testing.assert_close(logits, torch.full((8,), bias), rtol=0, atol=0)
+    assert ((logits < 0) | (logits > 1)).all()
+    assert not any(isinstance(layer, torch.nn.Sigmoid) for layer in model.modules())
+
+
+def test_model_single_layer_disables_lstm_dropout_without_warning(model_n_features):
+    import warnings
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        model = LSTMClassifier(model_n_features, hidden_size=16, num_layers=1, dropout=0.3)
+        with torch.no_grad():
+            logits = model(torch.zeros(1, 20, model_n_features))
+    assert not caught
+    assert model.lstm.num_layers == 1
+    assert model.lstm.hidden_size == 16
+    assert model.lstm.dropout == 0.0
+    assert model.head[0].p == 0.3
+    assert logits.shape == (1,)
+
+
+def test_model_default_architecture(model_n_features):
+    model = LSTMClassifier(model_n_features)
+    assert isinstance(model.lstm, torch.nn.LSTM)
+    assert model.lstm.input_size == model_n_features
+    assert model.lstm.num_layers == 2
+    assert model.lstm.hidden_size == 64
+    assert model.lstm.batch_first is True
+    assert model.lstm.dropout == 0.2
+    assert isinstance(model.head, torch.nn.Sequential)
+    assert [type(layer) for layer in model.head] == [
+        torch.nn.Dropout, torch.nn.Linear, torch.nn.ReLU, torch.nn.Linear
+    ]
+    assert model.head[0].p == 0.2
+    assert (model.head[1].in_features, model.head[1].out_features) == (64, 32)
+    assert (model.head[3].in_features, model.head[3].out_features) == (32, 1)
+
+
+def test_model_initialization_is_reproducible(model_n_features):
+    torch.manual_seed(42)
+    first = LSTMClassifier(model_n_features)
+    torch.manual_seed(42)
+    second = LSTMClassifier(model_n_features)
+    first_parameters = dict(first.named_parameters())
+    second_parameters = dict(second.named_parameters())
+    assert first_parameters.keys() == second_parameters.keys()
+    for name, parameter in first_parameters.items():
+        torch.testing.assert_close(parameter, second_parameters[name], rtol=0, atol=0)
+
+
+def test_model_eval_is_deterministic_and_training_uses_dropout(model_n_features):
+    model = LSTMClassifier(model_n_features, hidden_size=16, dropout=0.5)
+    x = torch.randn(8, 20, model_n_features)
+    with torch.no_grad():
+        model.eval()
+        eval_first, eval_second = model(x), model(x)
+        model.train()
+        train_first, train_second = model(x), model(x)
+    torch.testing.assert_close(eval_first, eval_second, rtol=0, atol=0)
+    assert not torch.equal(train_first, train_second)
+
+
+@pytest.mark.parametrize("input_type", ["numpy", "torch"])
+def test_model_loss_weight_dtype_shape_and_confident_predictions(input_type):
+    labels = np.array([0] * 6 + [1] * 4, dtype=np.float64)
+    y_train = torch.from_numpy(labels) if input_type == "torch" else labels
+    loss = make_loss(y_train)
+    assert isinstance(loss, torch.nn.BCEWithLogitsLoss)
+    assert loss.pos_weight.shape == (1,)
+    assert loss.pos_weight.dtype == torch.float32
+    assert loss.pos_weight.item() == pytest.approx(1.5)
+
+    targets = torch.tensor([0.0, 1.0, 0.0, 1.0])
+    correct_logits = (2 * targets - 1) * 8
+    right_loss = loss(correct_logits, targets)
+    wrong_loss = loss(-correct_logits, targets)
+    assert right_loss.shape == wrong_loss.shape == torch.Size([])
+    assert right_loss.dtype == wrong_loss.dtype == torch.float32
+    assert torch.isfinite(right_loss) and torch.isfinite(wrong_loss)
+    assert wrong_loss > right_loss
+
+
+@pytest.mark.parametrize("input_type", ["numpy", "torch"])
+def test_model_loss_handles_all_zero_labels(input_type):
+    labels = np.zeros(6, dtype=np.int64)
+    y_train = torch.from_numpy(labels) if input_type == "torch" else labels
+    loss = make_loss(y_train)
+    assert loss.pos_weight.shape == (1,)
+    assert loss.pos_weight.dtype == torch.float32
+    assert loss.pos_weight.item() == len(labels)
+    value = loss(torch.zeros(len(labels)), torch.zeros(len(labels)))
+    assert value.shape == torch.Size([])
+    assert torch.isfinite(value)
+
+
+@pytest.mark.parametrize("lr", [0.001, 0.01])
+def test_model_optimizer_is_adam_with_requested_settings(model_n_features, lr):
+    model = LSTMClassifier(model_n_features)
+    optimizer = make_optimizer(model, lr)
+    assert isinstance(optimizer, torch.optim.Adam)
+    for group in optimizer.param_groups:
+        assert group["lr"] == lr
+        assert group["weight_decay"] == 1e-4
+    optimizer_parameters = [parameter for group in optimizer.param_groups for parameter in group["params"]]
+    assert {id(parameter) for parameter in optimizer_parameters} == {
+        id(parameter) for parameter in model.parameters()
+    }
+
+
+def test_model_training_step_and_tiny_batch_overfit(model_n_features):
+    model = LSTMClassifier(model_n_features, hidden_size=8, num_layers=1, dropout=0.0)
+    targets = torch.tensor([0.0, 1.0] * 4)
+    x = torch.randn(len(targets), 5, model_n_features) * 0.05
+    x[:, :, 0] = (2 * targets - 1).unsqueeze(1)
+    loss = make_loss(targets)
+    optimizer = make_optimizer(model, lr=0.03)
+    with torch.no_grad():
+        initial_loss = loss(model(x), targets).item()
+
+    model.train()
+    for _ in range(30):
+        optimizer.zero_grad()
+        value = loss(model(x), targets)
+        assert torch.isfinite(value)
+        value.backward()
+        assert all(parameter.grad is not None for parameter in model.parameters())
+        assert all(torch.isfinite(parameter.grad).all() for parameter in model.parameters())
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        assert torch.isfinite(grad_norm)
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        final_loss = loss(model(x), targets).item()
+    assert final_loss < initial_loss * 0.5
+
+
+def test_model_accepts_a_b1_training_batch(processed_frames, model_seed):
+    loaders = make_loaders(20, 64)
+    xs, ys = next(iter(loaders["train"]))
+    n_features = len(get_feature_columns("all"))
+    model = LSTMClassifier(n_features).eval()
+    with torch.no_grad():
+        logits = model(xs)
+    assert loaders["n_features"] == n_features
+    assert logits.shape == ys.shape == (xs.shape[0],)
+    assert torch.isfinite(logits).all()
+
+
+@pytest.mark.parametrize("kwargs,message", [
+    ({"n_features": 0}, "n_features must be at least 1"),
+    ({"n_features": -1}, "n_features must be at least 1"),
+    ({"hidden_size": 0}, "hidden_size must be at least 1"),
+    ({"hidden_size": -1}, "hidden_size must be at least 1"),
+    ({"num_layers": 0}, "num_layers must be at least 1"),
+    ({"num_layers": -1}, "num_layers must be at least 1"),
+    ({"dropout": -0.1}, "dropout must be in"),
+    ({"dropout": 1.0}, "dropout must be in"),
+    ({"dropout": 1.1}, "dropout must be in"),
+])
+def test_model_invalid_arguments_raise_value_error(model_seed, kwargs, message):
+    arguments = {"n_features": 1, **kwargs}
+    with pytest.raises(ValueError, match=message):
+        LSTMClassifier(**arguments)
+
+
+@pytest.mark.parametrize("lr", [0.0, -0.01])
+def test_model_invalid_learning_rate_raises_value_error(model_seed, lr):
+    model = LSTMClassifier(n_features=1)
+    with pytest.raises(ValueError, match="lr must be greater than 0"):
+        make_optimizer(model, lr)
