@@ -15,8 +15,8 @@ from sklearn.metrics import roc_auc_score
 from src.deep.dataset import make_dataset, make_loader, make_loaders
 from src.deep.model import LSTMClassifier, make_loss, make_optimizer
 
-DEFAULTS = {"window": 20, "hidden": 64, "layers": 2, "dropout": 0.2, "lr": 1e-3,
-            "batch_size": 64, "epochs": 100, "patience": 10, "feature_set": "all"}
+DEFAULTS = {"window": 60, "hidden": 32, "layers": 2, "dropout": 0.3, "lr": 1e-3,
+            "batch_size": 32, "epochs": 100, "patience": 10, "feature_set": "stationary"}
 SEED = 42
 MODEL_NAME = "lstm"
 CLIP_NORM = 1.0
