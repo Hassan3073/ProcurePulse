@@ -269,12 +269,16 @@ Test set: 2024 to October 2026, 701 trading days, 60.9% "up". Full table: [`resu
 
 ## 💾 Model weights
 
-Trained weights are **not stored in Git** (`models/` is git-ignored). Download them here:
+Trained weights are **not stored in Git** (`models/` is git-ignored). All of them are in one shared folder:
 
-| Weights | Files | Link | Put them in |
+### 📂 [ProcurePulse Weights on Google Drive](https://drive.google.com/drive/folders/1f7wTbil1X0m18IeWe4aO0GA4EqdAEvhi?usp=sharing)
+
+The folder has the same layout as the repository, so copy each subfolder into `models/`:
+
+| Drive folder | Files | Model | Put them in |
 |---|---|---|---|
-| scikit-learn models | `majority.joblib`, `logreg.joblib`, `random_forest.joblib`, `hist_gb.joblib` | [Google Drive](https://drive.google.com/drive/folders/1SpbdRzRhxFc9VdBoeib2zyG168_rObUI?usp=sharing) | `models/classical/` |
-| LSTM | `lstm_best.pt`, `lstm_config.json` | [Google Drive](LINK_LSTM) | `models/deep/` |
+| `models/classical/` | `majority.joblib`, `logreg.joblib`, `random_forest.joblib`, `hist_gb.joblib` | scikit-learn models | `models/classical/` |
+| `models/deep/` | `lstm_best.pt`, `lstm_config.json` | LSTM | `models/deep/` |
 
 You don't need them to reproduce the results: `python main.py --from 8` retrains every model from the feature files.
 
