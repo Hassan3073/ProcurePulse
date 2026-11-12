@@ -5,6 +5,7 @@ import streamlit as st
 
 from src.inference.classical import MODEL_NAMES, predict_classical
 from src.inference.features import PRICE_COLUMNS, build_features, load_builtin_prices, read_upload
+from src.inference.live import download_latest
 from src.recommendation.price_range import HORIZON, METALS, UNITS, check_quote
 
 try:
@@ -17,12 +18,16 @@ COMPARISON = ROOT / "results" / "tables" / "model_comparison.csv"
 LABELS = {"logreg": "Logistic regression", "random_forest": "Random forest",
           "hist_gb": "Gradient boosting", "lstm": "LSTM"}
 COLORS = {"BUY": "#4caf50", "HOLD": "#d4a017", "NEGOTIATE": "#e5534b"}
-SOURCES = ["Built-in data", "Upload CSV"]
+SOURCES = ["Built-in data", "Upload CSV", "Latest prices"]
 
 
 @st.cache_data
 def builtin_prices():
     return load_builtin_prices()
+
+@st.cache_data(ttl=3600, show_spinner="Downloading the latest prices...")
+def latest_prices():
+    return download_latest()
 
 
 @st.cache_data
@@ -111,6 +116,14 @@ with left:
     if base is not None and source == SOURCES[0]:
         prices = base
         st.caption(f"ProcurePulse data, {base.index[0]:%d %b %Y} to {base.index[-1]:%d %b %Y}.")
+
+    elif base is not None and source == SOURCES[2]:
+        try:
+            prices = latest_prices()
+            st.caption(f"Downloaded {len(prices)} trading days, up to {prices.index[-1]:%d %b %Y}. Needs internet.")
+        except Exception as exc:
+            error = f"Could not download the latest prices ({exc}). Check the internet connection or use built-in data."
+            
     elif base is not None:
         st.download_button("Download template", template_csv(base), "procurepulse_template.csv", "text/csv")
         upload = st.file_uploader("CSV with date, " + ", ".join(PRICE_COLUMNS), type="csv")
