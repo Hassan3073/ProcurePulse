@@ -10,3 +10,4 @@ statsmodels
 joblib
 torch
 pytest
+streamlit>=1.46
