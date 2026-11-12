@@ -94,11 +94,13 @@ background:linear-gradient(90deg,#2e5e30 0 {green}%,#d4a017 {green}% {high}%,#8e
 
 
 st.title("Check a supplier quote")
+st.caption("Enter a supplier's price. ProcurePulse compares it with how far the market usually moves in "
+           f"{HORIZON} trading days and tells you whether to buy, wait or negotiate.")
 left, right = st.columns([1, 2], gap="large")
 
 with left:
-    metal = st.selectbox("Metal", METALS, format_func=lambda m: f"{m.title()} ({UNITS[m]})")
-    source = st.radio("Market data", SOURCES, horizontal=True)
+    metal = st.selectbox("1. Metal", METALS, format_func=lambda m: f"{m.title()} ({UNITS[m]})")
+    source = st.radio("2. Market data", SOURCES, horizontal=True)
 
     prices, base, error = None, None, None
     try:
@@ -126,14 +128,14 @@ with left:
 
     unit = UNITS[metal].split("/")[1]
     market = float(prices[metal].iloc[-1]) if prices is not None else 1.0
-    quote = st.number_input(f"Quoted price ({UNITS[metal]})", min_value=0.01, value=round(market, 2),
+    quote = st.number_input(f"3. Quoted price ({UNITS[metal]})", min_value=0.01, value=round(market, 2),
                             step=round(max(market * 0.001, 0.01), 2), key=f"quote_{metal}_{source}_{market}")
-    quantity = st.number_input(f"Quantity ({unit})", min_value=1.0, value=10.0, step=1.0)
+    quantity = st.number_input(f"4. Quantity ({unit})", min_value=1.0, value=10.0, step=1.0)
 
     model = None
     if metal == "gold":
         options = MODEL_NAMES + (["lstm"] if predict_lstm is not None else [])
-        model = st.selectbox("Model used for the recommendation", options, format_func=LABELS.get)
+        model = st.selectbox("5. Model used for the recommendation", options, format_func=LABELS.get)
 
     clicked = st.button("Check quote", type="primary", use_container_width=True, disabled=prices is None)
 
@@ -169,12 +171,37 @@ with right:
             f"border-radius:10px;padding:6px 18px'>{r['action']}</div>"
             f"<div style='color:#8b8d90'>{r['metal'].title()} ({r['unit']})<br>{r['basis']}</div></div>",
             unsafe_allow_html=True)
+        if r["basis"] == "Price range only":
+            rules = ("**Price range only** (no AI model used)\n\n"
+                     f"- BUY: quote at or below the typical level ({r['mid']:,.2f})\n"
+                     f"- HOLD: between the typical level and the expected high ({r['high']:,.2f})\n"
+                     f"- NEGOTIATE: above the expected high")
+        else:
+            rules = (f"**AI model + price range** (gold)\n\n"
+                     f"- BUY: quote below the expected low ({r['low']:,.2f}), or inside the range "
+                     f"and the model expects a rise (50% or more)\n"
+                     f"- HOLD: inside the range and the model expects a fall\n"
+                     f"- NEGOTIATE: above the expected high ({r['high']:,.2f})")
+        st.caption("How is this decided?", help=rules)
         st.markdown("\n".join(f"- {reason}" for reason in r["reasons"]))
         if saved["warning"]:
             st.warning(saved["warning"])
 
         cost = r["cost_vs_market"]
         unit = r["unit"].split("/")[1]
+        gap = f"{abs(r['diff_pct']):.1%} {'below' if cost < 0 else 'above'} today's market price"
+        money = f"{abs(cost):,.0f} USD {'saved' if cost < 0 else 'extra'} on {r['quantity']:g} {unit}"
+        model_used = r["basis"] != "Price range only"
+        summary = {
+            "BUY": f"Buy now: the quote is {gap} ({money}), but the model expects gold to rise."
+                   if model_used and cost > 0 else f"Good price: the quote is {gap} ({money}).",
+            "HOLD": f"Wait: the quote is {gap} ({money}), and the model expects gold to fall."
+                    if model_used else f"Fair price, but on the high side: the quote is {gap} ({money}). "
+                                       f"Wait, or ask for about {r['mid']:,.2f}.",
+            "NEGOTIATE": f"Too expensive: the quote is {gap} ({money}). Ask for about {r['mid']:,.2f}; "
+                         f"anything above {r['high']:,.2f} is more than the market usually reaches in {HORIZON} days.",
+        }
+        st.markdown(f"**{summary[r['action']]}**")
         cost_label = "You save vs market" if cost < -0.5 else "Extra cost vs market" if cost > 0.5 else "Cost vs market"
         market_help = (f"Latest exchange (COMEX futures) price in the data, on {r['last_date']}.\n\n"
                        "Supplier premiums, taxes and delivery are not included.")
@@ -194,7 +221,17 @@ with right:
         c2.metric("Your quote", f"{r['quote']:,.2f}")
         c3.metric("Difference", signed(r["diff_pct"], "+.1%"), help=diff_help)
         c4.metric(cost_label, f"{abs(cost):,.0f} USD", help=cost_help)
-        st.caption(f"Prices up to {pd.Timestamp(r['last_date']):%d %b %Y}.")
+        f1, f2, _, _ = st.columns(4)
+        f1.metric("Fair price", f"{r['mid']:,.2f}",
+                  help=f"Typical price in {HORIZON} days = market price x (1 + median past {HORIZON}-day change)\n\n"
+                       f"{r['last_price']:,.2f} x (1 {r['pct_mid']:+.2%}) = {r['mid']:,.2f}\n\n"
+                       "A good target when negotiating.")
+        f2.metric("Walk-away price", f"{r['high']:,.2f}",
+                  help=f"Expected high = market price x (1 + 90th percentile of past {HORIZON}-day changes)\n\n"
+                       f"{r['last_price']:,.2f} x (1 {r['pct_high']:+.2%}) = {r['high']:,.2f}\n\n"
+                       "Only 10% of past weeks rose more than this. Above it: NEGOTIATE.")
+        st.caption(f"Market prices are from {pd.Timestamp(r['last_date']):%d %b %Y}. If your quote is from a later date, "
+                   "the market may have moved; upload recent prices for a fresher check.")
 
         st.markdown(range_bar(r, r["quote"], saved["probs"].get(saved["model"])), unsafe_allow_html=True)
         st.caption(f"Range from the 10th, 50th and 90th percentile of {r['n_changes']:,} past "
@@ -209,11 +246,13 @@ with right:
                 n1.write(f"**{LABELS.get(name, name)}**{marker}")
                 n2.markdown(probability_bar(p), unsafe_allow_html=True)
                 direction = "Up" if p >= 0.5 else "Down"
-                score = f", test AUC {auc[name]:.3f}" if name in auc else ""
+                score = f", reliability {auc[name]:.2f}" if name in auc else ""
                 n3.write(f"{p:.1%} {direction}{score}")
             ups = sum(p >= 0.5 for p in saved["probs"].values())
-            st.caption(f"{ups} of {len(saved['probs'])} models expect gold to rise. AUC 0.5 means guessing; "
-                       "the signal is weak, so treat the recommendation as a guide.")
+            st.caption(f"{ups} of {len(saved['probs'])} models expect gold to rise. Reliability is the test AUC: "
+                       "0.50 means guessing and 1.00 is perfect, so treat the recommendation as a guide.",
+                       help="AUC measures how well a model ranks rising days above falling days on 701 test days "
+                            "(2 Jan 2024 to 14 Oct 2026) that it never saw during training.")
         elif r["metal"] != "gold":
             st.info(f"No AI model for {r['metal']}: the recommendation compares the quote with "
                     f"{r['metal']}'s usual {HORIZON}-day price moves only.")
