@@ -10,8 +10,9 @@
 ![pandas](https://img.shields.io/badge/pandas-data-150458?logo=pandas&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-preprocessing-F7931E?logo=scikitlearn&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-LSTM-EE4C2C?logo=pytorch&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
 ![LaTeX](https://img.shields.io/badge/Report-LaTeX-008080?logo=latex&logoColor=white)
-![Status](https://img.shields.io/badge/Deliverable%202-complete-2ea44f)
+![Status](https://img.shields.io/badge/Deliverable%203-complete-2ea44f)
 
 [The problem](#-the-problem) •
 [Team](#-team) •
@@ -20,6 +21,8 @@
 [Pipeline](#-how-the-pipeline-works) •
 [Models](#-deliverable-2-models) •
 [Results](#-results) •
+[App](#-deliverable-3-application) •
+[Recommendations](#-buy--hold--negotiate) •
 [Weights](#-model-weights) •
 [Report](#-report)
 
@@ -55,11 +58,11 @@ Large firms have analysts and hedging desks for this. Smaller firms usually rely
 
 ## 👥 Team
 
-| Member | Deliverable 1 | Deliverable 2 |
-|---|---|---|
-| **Hassan Ashraf 24L-3073** (lead) | Problem definition (Phase 1), data collection scripts, raw-data charts, report introduction, data collection and conclusion | Shared setup, scikit-learn models and tuning, evaluation module, `main.py` steps 8–11, report sections on classical models, evaluation, architecture and contributions, README |
-| **Sharjeel Shahid 24L-3055** | Data cleaning, feature engineering, exploratory data analysis (EDA), report sections on cleaning and features/EDA | PyTorch LSTM (dataset, model, training, tuning, curves), error analysis and bias check, report sections on the LSTM and the Bias Check |
-| **Zunaira Tahir 24L-3038** | Fixing errors in the code and report, README, final report compilation and submission | – |
+| Member | Deliverable 1 | Deliverable 2 | Deliverable 3 |
+|---|---|---|---|
+| **Hassan Ashraf 24L-3073** (lead) | Problem definition (Phase 1), data collection scripts, raw-data charts, report introduction, data collection and conclusion | Shared setup, scikit-learn models and tuning, evaluation module, `main.py` steps 8–11, report sections on classical models, evaluation, architecture and contributions, README | Price range and Buy/Hold/Negotiate rule, app setup, theme and logo, inference pipeline, Quote Check page, Latest prices download, report abstract, recommendations, introduction, conclusion and contributions, metrics chart fix, app screenshots, README |
+| **Sharjeel Shahid 24L-3055** | Data cleaning, feature engineering, exploratory data analysis (EDA), report sections on cleaning and features/EDA | PyTorch LSTM (dataset, model, training, tuning, curves), error analysis and bias check, report sections on the LSTM and the Bias Check | LSTM inference, Market page, Model Insights page, sample predictions figure, About page, report section on the application |
+| **Zunaira Tahir 24L-3038** | Fixing errors in the code and report, README, final report compilation and submission | – | – |
 
 ---
 
