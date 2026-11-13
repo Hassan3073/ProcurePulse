@@ -27,7 +27,18 @@ levels that moved far outside the training range. Accuracy alone would have
 hidden all of this, which is why we report precision, recall, F1 and AUC-ROC
 and analyse errors by market regime (Section~\ref{sec:error-bias}).
 
-Deliverable~3 will build on these findings:
+Deliverable~3 turned these results into a tool a buyer can use. Every quote is
+compared with an expected five-day price range taken from the 10th, 50th and
+90th percentiles of past price changes, which works for all four metals; for
+gold, the model's predicted direction decides quotes inside the range
+(Section~\ref{sec:recommendation}). Because the model signal is weak, the
+range does most of the work and the model only tips the close cases. A local
+Streamlit application (Section~\ref{sec:application}) runs this inference in
+real time on built-in, uploaded or freshly downloaded prices, and explains
+each recommendation with the market price, the expected range and the model
+probabilities.
+
+\subsection{Future Work}
 
 \begin{itemize}
   \item \textbf{Shift-resistant features}: replace raw price levels with
@@ -37,8 +48,14 @@ Deliverable~3 will build on these findings:
   \item \textbf{Calibrated decisions}: calibrate the predicted probabilities
         and choose the decision threshold on the validation split instead of
         using 0.5.
-  \item \textbf{Price forecasts with uncertainty}: add the regression models
-        planned in Deliverable~1 (ARIMA, Prophet and quantile models) to
-        produce prediction intervals, and combine them with the direction
-        signal to generate the final Buy, Hold and Negotiate recommendations.
+  \item \textbf{Forecasts with uncertainty}: Deliverable~1 planned regression
+        forecasts with prediction intervals (ARIMA, Prophet and quantile
+        models). Deliverable~3 used an empirical range from past price changes
+        instead; a fitted forecasting model could give ranges that widen and
+        narrow with market volatility.
+  \item \textbf{AI models for the other metals}: train and evaluate direction
+        models for silver, copper and platinum, so they no longer rely on the
+        price range alone.
+  \item \textbf{More realistic quotes}: add supplier premiums, local
+        currencies and units, and a mode for businesses that sell metal.
 \end{itemize}

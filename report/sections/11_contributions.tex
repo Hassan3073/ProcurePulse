@@ -14,6 +14,9 @@ the two halves of the code. The evaluation (Section~\ref{sec:evaluation}) and
 the error analysis (Section~\ref{sec:error-bias}) read every prediction file,
 so a new model only has to produce this file to be included. The whole system
 runs with one command, \texttt{python main.py}, in eleven steps.
+Deliverable~3 adds an application layer on top of this pipeline: the
+Streamlit pages read the saved data, models and results and never retrain
+the models (Section~\ref{sec:application}).
 
 \begin{figure}[H]
   \centering
@@ -22,7 +25,64 @@ runs with one command, \texttt{python main.py}, in eleven steps.
   \label{fig:system}
 \end{figure}
 
-\subsection{Contribution Table}
+\subsection{Team}
+
+Table~\ref{tab:team} shows what each member contributed to each deliverable.
+Zunaira Tahir was a member of the group for Deliverable~1 only.
+
+\begin{table}[H]
+  \centering
+  \small
+  \sloppy
+  \begin{tabular}{p{2.4cm}p{4cm}p{4cm}p{4cm}}
+    \toprule
+    Member & Deliverable~1 & Deliverable~2 & Deliverable~3 \\
+    \midrule
+    Hassan Ashraf 24L-3073 (lead) & Problem definition (Phase~1), data collection scripts, raw-data charts, report introduction, data collection and conclusion & Shared setup, scikit-learn models and tuning, evaluation module, \texttt{main.py} steps 8--11, report sections on classical models, evaluation, architecture and contributions, README & Price range and recommendation rule, application setup and theme, inference pipeline, Quote Check page, Latest prices download, report abstract, recommendations, introduction, conclusion and contributions \\
+    Sharjeel Shahid 24L-3055 & Data cleaning, feature engineering, exploratory data analysis (EDA), report sections on cleaning and features/EDA & PyTorch LSTM (dataset, model, training, tuning, curves), error analysis and bias check, report sections on the LSTM and the Bias Check & LSTM inference, Market page, Model Insights page, sample predictions figure, About page, report section on the application \\
+    Zunaira Tahir 24L-3038 & Fixing errors in the code and report, README, final report compilation and submission & -- & -- \\
+    \bottomrule
+  \end{tabular}
+  \caption{Team members and their contributions to each deliverable.}
+  \label{tab:team}
+\end{table}
+
+\subsection{Contribution Table: Deliverable 3}
+
+Table~\ref{tab:contributions-d3} lists every Deliverable~3 module in the same
+way as for Deliverable~2: its files, the Git author and the number of commits,
+taken from the Git history of the \texttt{main} branch (\texttt{git log
+--no-merges}, Deliverable~3 commits only).
+
+\begin{table}[H]
+  \centering
+  \small
+  \sloppy
+  \begin{tabular}{p{0.8cm}p{3.1cm}p{6.3cm}p{2.5cm}c}
+    \toprule
+    Task & Module & Files & Author & Commits \\
+    \midrule
+    A1 & Price range and recommendation rule & \texttt{src/recommendation/price\_range.py}, \texttt{tests/test\_price\_range.py} & Hassan Ashraf & 3 \\
+    A2 & Application setup, theme and logo & \texttt{requirements.txt}, \texttt{.streamlit/config.toml}, \texttt{app/streamlit\_app.py}, \texttt{app/assets/}, \texttt{report/main.tex} & Hassan Ashraf & 6 \\
+    A3 & Inference pipeline & \texttt{src/inference/features.py}, \texttt{classical.py}, \texttt{tests/test\_inference.py} & Hassan Ashraf & 3 \\
+    A4 & Quote Check page & \texttt{app/views/quote\_check.py} & Hassan Ashraf & 4 \\
+    A5 & Latest prices & \texttt{src/inference/live.py}, Quote Check data option, \texttt{tests/test\_live.py} & Hassan Ashraf & 3 \\
+    A6 & Report: abstract, recommendations, introduction, conclusion, contributions & \texttt{00\_abstract.tex}, \texttt{13\_recommendation.tex}, \texttt{01\_introduction.tex}, \texttt{06\_conclusion.tex}, \texttt{11\_contributions.tex} & Hassan Ashraf & 4 \\
+    \midrule
+    B1 & LSTM inference & \texttt{src/inference/lstm.py}, \texttt{tests/test\_inference\_lstm.py} & Sharjeel Shahid & 2 \\
+    B2 & Market page & \texttt{app/views/market.py} & Sharjeel Shahid & 1 \\
+    B3 & Model Insights page & \texttt{app/views/model\_insights.py} & Sharjeel Shahid & 1 \\
+    B4 & Sample predictions and About page & \texttt{src/analysis/sample\_predictions.py}, sample predictions figure, \texttt{app/views/about.py} & Sharjeel Shahid & 3 \\
+    B5 & Report: application & Section~\ref{sec:application}, \texttt{refs\_b.bib} & Sharjeel Shahid & 2 \\
+    \midrule
+    \multicolumn{4}{l}{\textbf{Total}: Hassan Ashraf 23 commits, Sharjeel Shahid 9 commits} & 32 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Contribution Table for Deliverable~3 (from the Git history of \texttt{main}).}
+  \label{tab:contributions-d3}
+\end{table}
+
+\subsection{Contribution Table: Deliverable 2}
 
 Table~\ref{tab:contributions} lists every Deliverable~2 module, its files, the
 Git author and the number of commits. The numbers are taken from the Git

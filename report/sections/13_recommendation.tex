@@ -1,0 +1,170 @@
+% Owner: Hassan Ashraf 24L-3073
+\section{Buy, Hold and Negotiate Recommendations}
+\label{sec:recommendation}
+
+The models in Sections~\ref{sec:classical} and~\ref{sec:deep} predict only the
+direction of gold. A buyer, however, needs an answer to a different question:
+\emph{is this supplier's price good, and should I buy now?} This section
+describes how ProcurePulse turns market data and the model output into one of
+three actions for a supplier's quote. The code is in
+\texttt{src/recommendation/price\_range.py} and is used by the Quote Check page
+of the application (Section~\ref{sec:application}).
+
+\subsection{Design Choice: AI Model for Gold, Price Range for All Metals}
+
+All models in this project were trained and evaluated for gold only. Training
+and validating separate models for silver, copper and platinum would repeat
+the whole of Deliverable~2 three times, and the gold results suggest that the
+signal would be weak for them as well (Section~\ref{sec:evaluation}). We
+therefore use two levels of recommendation:
+
+\begin{itemize}
+  \item \textbf{Gold: AI model and price range.} The quote is compared with an
+        expected five-day price range, and the model's predicted direction
+        decides quotes that fall inside that range.
+  \item \textbf{Silver, copper and platinum: price range only.} The quote is
+        compared with the expected range alone. The application labels these
+        results ``Price range only'' so the user knows that no AI model was
+        used.
+\end{itemize}
+
+\subsection{Expected Five-Day Price Range}
+
+The range answers the question: \emph{how far does this metal usually move in
+five trading days?} For a metal with daily price $P_t$, the five-day change is
+\[
+  r_t = \frac{P_{t+5}}{P_t} - 1 .
+\]
+We compute $r_t$ for every trading day in the training years (2010 to 31
+December 2021) and take its 10th, 50th and 90th percentiles,
+$q_{10}$, $q_{50}$ and $q_{90}$. With the latest market price $P_{\text{last}}$,
+the expected range is
+\[
+  \text{low} = P_{\text{last}}(1+q_{10}), \qquad
+  \text{mid} = P_{\text{last}}(1+q_{50}), \qquad
+  \text{high} = P_{\text{last}}(1+q_{90}).
+\]
+By construction, eight out of ten five-day changes in the training years fell between $q_{10}$ and $q_{90}$. This is
+an empirical prediction interval built from historical changes rather than
+from a fitted forecasting model~\cite{a_hyndman2021}. Only the training years
+are used, so the range never contains information from the validation or test
+periods, in the same way as the scaler in Deliverable~1. The application calls
+the middle value the \emph{fair price} and the upper value the
+\emph{walk-away price}.
+
+Table~\ref{tab:price-ranges} shows the percentiles for the four metals. Each
+is based on 3,013 five-day changes. Silver moves the most and gold the least,
+so the same percentage markup can be acceptable for silver but too high for
+gold.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{lcccc}
+    \toprule
+    Metal (unit) & $q_{10}$ (low) & $q_{50}$ (mid) & $q_{90}$ (high) & Width (points) \\
+    \midrule
+    Gold (USD/oz)     & $-2.5\%$ & $+0.2\%$ & $+2.7\%$ & 5.2 \\
+    Silver (USD/oz)   & $-4.4\%$ & $+0.1\%$ & $+4.8\%$ & 9.2 \\
+    Copper (USD/lb)   & $-3.5\%$ & $+0.1\%$ & $+3.7\%$ & 7.2 \\
+    Platinum (USD/oz) & $-3.8\%$ & $-0.1\%$ & $+3.9\%$ & 7.7 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Percentiles of past five-day price changes, 2010--2021 (3,013 changes per metal).}
+  \label{tab:price-ranges}
+\end{table}
+
+\subsection{Decision Rules}
+
+Table~\ref{tab:decision-rules} lists the rules. A quote above the expected
+high is always \textbf{Negotiate}, because the market rarely rises that far
+in five days. When a model is used, a quote below the expected low is always
+\textbf{Buy}, and inside the range the model decides: if it gives a
+probability of at least 0.5 that gold will rise, waiting is likely to cost
+more, so the action is \textbf{Buy}; otherwise waiting is likely to be
+cheaper, so the action is \textbf{Hold}. Without a model (silver, copper and
+platinum, or gold when the model files are missing), the fair price splits
+the range instead.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{p{2.6cm}p{4.6cm}p{4.6cm}p{1.9cm}}
+    \toprule
+    Action & AI model + price range (gold) & Price range only (silver, copper, platinum) & Meaning \\
+    \midrule
+    \textbf{Buy} & quote $<$ low, or low $\le$ quote $\le$ high and $p_{\text{up}} \ge 0.5$ & quote $\le$ mid & buy now \\
+    \textbf{Hold} & low $\le$ quote $\le$ high and $p_{\text{up}} < 0.5$ & mid $<$ quote $\le$ high & wait \\
+    \textbf{Negotiate} & quote $>$ high & quote $>$ high & ask for less \\
+    \bottomrule
+  \end{tabular}
+  \caption{Decision rules. $p_{\text{up}}$ is the selected model's probability that gold is higher in five trading days.}
+  \label{tab:decision-rules}
+\end{table}
+
+\textbf{Hold} therefore has two meanings, and the application explains which
+one applies. With a model it means ``the model expects the price to fall, so
+waiting may be cheaper''. With the price range only it means ``the quote is
+inside the usual range but above the fair price, so wait or ask for a small
+discount''. The default gold model is logistic regression, because it gave
+the most reliable ``up'' calls on the test years (precision 0.70,
+Table~\ref{tab:test-results}). The user can switch to the random forest,
+gradient boosting or the LSTM. Because the random forest and gradient
+boosting predicted ``down'' on every test day, they will usually lead to
+\textbf{Hold} inside the range.
+
+\subsection{Worked Example}
+
+With the built-in data, the last gold price is 4,153.60~USD/oz on
+21 October 2026. The expected range is 4,048.39 (low), 4,162.43 (fair price)
+and 4,264.93 (walk-away price). Table~\ref{tab:worked-example} shows three
+quotes for 10~oz. The cost compared with the market is
+$(\text{quote}-P_{\text{last}})\times\text{quantity}$.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{rrll}
+    \toprule
+    Quote (USD/oz) & Cost vs market (10 oz) & Action & Reason \\
+    \midrule
+    4,000.00 & $-1,536$ USD & Buy & below the expected low \\
+    4,200.00 & $+464$ USD & Buy or Hold & inside the range: model decides \\
+    4,300.00 & $+1,464$ USD & Negotiate & above the walk-away price \\
+    \bottomrule
+  \end{tabular}
+  \caption{Gold quotes checked against the expected range (built-in data, 21 October 2026).}
+  \label{tab:worked-example}
+\end{table}
+
+For the 4,200 quote the result depends on the model: it is \textbf{Buy} if
+the selected model expects a rise and \textbf{Hold} if it expects a fall.
+Without a model the same quote would be \textbf{Hold}, because it is above the
+fair price of 4,162.43.
+
+\subsection{Fresh Data}
+
+The built-in data ends on 21 October 2026, so the market price it uses
+becomes older every day. The user can check a quote against newer prices in
+two ways: by uploading a CSV file of recent prices, or by choosing
+\emph{Latest prices}, which downloads about one year of prices when the
+quote is checked (Section~\ref{sec:application}). In both cases the new
+prices pass through the same cleaning and feature steps as the training data.
+The models themselves are not retrained, and the range percentiles still come
+from 2010--2021, so the comparison stays consistent with the evaluated
+models.
+
+\subsection{Limitations}
+
+\begin{itemize}
+  \item \textbf{Exchange prices, not supplier prices.} The market price is the
+        COMEX futures price. Real supplier quotes include premiums, taxes and
+        delivery costs, so a fair supplier quote may sit slightly above the
+        range.
+  \item \textbf{Fixed width.} The range uses the same percentiles in calm and
+        volatile periods. It does not widen when the market becomes more
+        volatile.
+  \item \textbf{Weak model signal.} The best test AUC is 0.60, so the model
+        only tips quotes inside the range; it should be read as a guide, not
+        a guarantee.
+  \item \textbf{Buyers only.} The rules are written for a business that buys
+        metal. Advice for sellers is left for future work.
+\end{itemize}

@@ -1,0 +1,24 @@
+% Owner: Hassan Ashraf 24L-3073
+\begin{abstract}
+Small and medium-sized businesses that buy metals pay prices set on commodity
+exchanges, and they rarely have the tools to judge whether a supplier's quote
+is fair or whether to buy now or wait. ProcurePulse addresses this problem. We
+collected daily data from January 2010 to October 2026 for four COMEX metals
+(gold, silver, copper and platinum) and four economic signals (the US dollar
+index, crude oil, the 10-year Treasury yield and inflation), cleaned it and
+built 27 features. We then predicted whether the gold price will be higher in
+five trading days, comparing a majority baseline, logistic regression, a
+random forest, histogram gradient boosting and an LSTM network. The models
+were tuned with walk-forward validation on 2010--2021, selected on 2022--2023
+and tested once on 701 trading days from 2024 to October 2026. The signal is
+weak: the best test AUC-ROC is 0.60, logistic regression gives the most
+reliable ``up'' calls (precision 0.70) and the LSTM gives the most balanced
+predictions (F1 0.55), while the tree models predict ``down'' on every test
+day because of a shift in price levels. We turned these results into
+Buy, Hold and Negotiate recommendations: each quote is compared with an
+expected five-day price range built from the 10th, 50th and 90th percentiles
+of past five-day price changes, and for gold the model's predicted direction
+decides quotes inside that range. Finally, we built a local Streamlit
+application that runs this inference in real time on built-in, uploaded or
+freshly downloaded prices and explains every recommendation.
+\end{abstract}
