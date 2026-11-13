@@ -165,6 +165,19 @@ python -m src.analysis.error_analysis        # 11 error analysis      -> results
 python -m pytest tests -q     # run the test suite (no data needed)
 ```
 
+**4. Start the app** (Deliverable 3)
+
+```bash
+python -m streamlit run app/streamlit_app.py
+```
+
+The app needs two things that are not in Git:
+
+- the **processed data** in `data/processed/`: run `python main.py` once (step 3 above). It downloads prices up to the day you run it, so your numbers will be more recent than the report's, which uses data up to 21 October 2026;
+- the **trained weights** in `models/`: download them from the [Google Drive folder](#-model-weights), or let `python main.py` train them.
+
+> 💡 The first quote check takes a few seconds while the models load; after that, results are almost instant.
+
 ---
 
 ## 🔧 How the pipeline works
@@ -360,11 +373,18 @@ procurepulse/
 │   ├── feature_engineering.py ← 6  features, split, capping, scaling
 │   ├── eda.py                 ← 7  EDA charts
 │   └── logs/                  ← run logs (copies in report/evidence/)
-├── src/                       ← Deliverable 2 code (run with python -m from the repo root)
+├── app/                       ← Deliverable 3 Streamlit app
+│   ├── streamlit_app.py       ← entry point: top bar with the 4 pages
+│   ├── views/                 ← quote_check.py, market.py, model_insights.py, about.py
+│   └── assets/                ← logo and browser icon
+├── .streamlit/config.toml     ← app theme
+├── src/                       ← Deliverable 2 and 3 code (run with python -m from the repo root)
 │   ├── classical/             ← data loader, 4 scikit-learn models, tuning and training
 │   ├── deep/                  ← LSTM dataset, model, training, tuning, curves
 │   ├── evaluation/            ← metrics, comparison table, ROC and confusion charts
-│   └── analysis/              ← error analysis by market regime, Bias Check
+│   ├── analysis/              ← error analysis by market regime, Bias Check, sample predictions
+│   ├── inference/             ← features, scikit-learn, LSTM and latest-prices inference for the app
+│   └── recommendation/        ← expected price range and the Buy/Hold/Negotiate rule
 ├── results/                   ← small result files, committed
 │   ├── predictions/           ← <model>.csv for all 5 models (the shared format)
 │   ├── tuning/                ← every hyperparameter configuration tried
@@ -376,7 +396,7 @@ procurepulse/
 ├── report/                    ← LaTeX report
 │   ├── main.tex
 │   ├── sections/              ← one .tex file per section
-│   ├── figures/               ← raw/, eda/, classical/, deep/, evaluation/, analysis/, architecture/
+│   ├── figures/               ← raw/, eda/, classical/, deep/, evaluation/, analysis/, architecture/, app/
 │   ├── evidence/              ← collection screenshot and log copies
 │   ├── refs_a.bib, refs_b.bib
 │   └── ProcurePulse_Deliverable1.pdf, ProcurePulse_Deliverable2.pdf
@@ -406,12 +426,14 @@ The technical report is in [`report/`](report/), written in LaTeX.
 
 - **Raw data is not on GitHub** (see `.gitignore`). Run the scripts to recreate it.
 - **Prices are continuous front-month futures**, which can jump when one contract rolls over to the next. Such jumps are among the extreme days flagged during cleaning.
+- **Recommendations are estimates, not financial advice.** The market price is the COMEX futures price; real supplier quotes also include premiums, taxes and delivery.
+- **The app is for buyers.** Advice for sellers, supplier premiums and local units are future work.
 - **Results depend on the run date**, because the scripts always download data up to today. The Deliverable 2 results above were produced on one shared data download (test period ending 14 October 2026), so all five models are compared on exactly the same days.
 
 <div align="center">
 
 <br>
 
-*Built for the AI Project course. Deliverable 1: Problem Definition & Data Foundations · Deliverable 2: Model Architecture & Empirical Evaluation.*
+*Built for the AI Project course. Deliverable 1: Problem Definition & Data Foundations · Deliverable 2: Model Architecture & Empirical Evaluation · Deliverable 3: Application & Final Report.*
 
 </div>
