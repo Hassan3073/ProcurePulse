@@ -270,6 +270,62 @@ Test set: 2024 to October 2026, 701 trading days, 60.9% "up". Full table: [`resu
 
 ---
 
+## 🖥️ Deliverable 3: Application
+
+A local **Streamlit** app turns the saved models into a tool a buyer can use. It runs on your own computer (no hosting) and computes every result when you click, from the saved weights. **It never retrains the models.**
+
+```bash
+python -m streamlit run app/streamlit_app.py
+```
+
+The app opens in your browser at `http://localhost:8501`. It needs the weights in `models/` (see [Model weights](#-model-weights)) and the processed data in `data/processed/` (see [Quick start](#-quick-start)).
+
+| Page | What it does |
+|---|---|
+| **Quote Check** | Enter a metal, a supplier's price and a quantity. Get **Buy**, **Hold** or **Negotiate**, the reasons, the fair price, the walk-away price, the cost compared with the market and, for gold, each model's chance of a rise |
+| **Market** | Price history for every metal and signal, 30-day change and volatility, outlier days, gold against the US dollar and oil |
+| **Model Insights** | Test results of all 5 models, ROC curves, confusion matrices, LSTM training curves, error analysis, Bias Check and sample predictions |
+| **About** | What ProcurePulse is, the data, the models, the limitations, the team, Terms of Service and Privacy Policy |
+
+**Market data options on Quote Check**
+
+| Option | What it uses |
+|---|---|
+| **Built-in data** | The project's cleaned prices (in the submitted data: 4 Jan 2010 to 21 Oct 2026) |
+| **Upload CSV** | Your own file with the columns `date, gold, silver, copper, platinum, dxy, wti, us10y, cpi` and at least 100 trading days. A template can be downloaded on the page |
+| **Latest prices** | Downloads about one year of prices from Yahoo Finance and the US Bureau of Labor Statistics when you check a quote. Needs internet; the prices are kept in memory only |
+
+Uploaded and downloaded prices go through the same cleaning and feature steps as the training data.
+
+<div align="center">
+<img src="report/figures/app/quote_check.png" alt="Quote Check page of the ProcurePulse app" width="90%">
+</div>
+
+---
+
+## ⚖️ Buy / Hold / Negotiate
+
+The models predict only the **direction** of gold. To judge a quote, ProcurePulse also needs to know how far a price usually moves. For each metal it takes every **5-day price change in the training years (2010 to 2021)** and uses the 10th, 50th and 90th percentiles to build an expected range around the latest price:
+
+| Metal | Low (10th) | Fair price (50th) | Walk-away price (90th) |
+|---|:---:|:---:|:---:|
+| Gold | −2.5% | +0.2% | +2.7% |
+| Silver | −4.4% | +0.1% | +4.8% |
+| Copper | −3.5% | +0.1% | +3.7% |
+| Platinum | −3.8% | −0.1% | +3.9% |
+
+The models were trained for gold only, so **gold uses the AI model and the range**, while **silver, copper and platinum use the range only** (labelled *Price range only* in the app).
+
+| Action | Gold (AI model + range) | Silver, copper, platinum (range only) |
+|:---:|---|---|
+| ✅ **Buy** | Quote below the low, or inside the range and the model gives a rise a chance of 50% or more | Quote at or below the fair price |
+| ⏳ **Hold** | Quote inside the range and the model expects a fall | Quote between the fair price and the walk-away price |
+| 🤝 **Negotiate** | Quote above the walk-away price | Quote above the walk-away price |
+
+The default gold model is **logistic regression**, which gave the most reliable "up" calls on the test years. Full details, a worked example and the limitations are in **Section 10** of the report.
+
+---
+
 ## 💾 Model weights
 
 Trained weights are **not stored in Git** (`models/` is git-ignored). All of them are in one shared folder:
