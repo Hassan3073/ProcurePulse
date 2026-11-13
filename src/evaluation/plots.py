@@ -42,7 +42,7 @@ def plot_metric_bars(table, split="test"):
     ax.set_ylim(0, 1)
     ax.set_ylabel("Score")
     ax.set_title(f"Model comparison on the {split} set")
-    ax.legend(["Precision", "Recall", "F1", "AUC-ROC"], loc="upper right", ncol=4)
+    ax.legend(ax.containers, ["Precision", "Recall", "F1", "AUC-ROC"], loc="upper right", ncol=4)
     fig = ax.get_figure()
     fig.tight_layout()
     fig.savefig(FIG_DIR / f"metrics_{split}.png", dpi=150)
