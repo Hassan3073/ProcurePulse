@@ -85,7 +85,7 @@ def range_bar(r, quote, up_prob=None):
     return f"""
 <div style="position:relative;height:28px;margin:34px 0 30px;border-radius:4px;overflow:visible;
 background:linear-gradient(90deg,#2e5e30 0 {green}%,#d4a017 {green}% {high}%,#8e3b37 {high}% 100%)">
-  <div style="position:absolute;left:{mid}%;top:0;bottom:0;width:2px;background:#0f1011"></div>
+  <div style="position:absolute;left:{mid}%;top:0;bottom:0;width:2px;background:#121315"></div>
   <div style="position:absolute;left:{pos(quote)}%;top:-10px;height:48px;width:3px;background:#fff"></div>
   <div style="position:absolute;left:{pos(quote)}%;top:-30px;transform:translateX(-50%);font-size:13px;white-space:nowrap">Quote {quote:,.2f}</div>
   <div style="position:absolute;left:{pos(r['last_price'])}%;top:-6px;height:40px;width:2px;background:#8b8d90"></div>
