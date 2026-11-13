@@ -3,28 +3,41 @@
 \label{sec:intro}
 
 ProcurePulse is an AI-assisted tool that helps businesses decide \emph{when} to
-buy metals and whether a supplier's price is fair. It forecasts the prices of
-gold and other metals traded on COMEX, attaches a prediction interval to each
-forecast, and compares a supplier's quote with that forecast to recommend
-\textbf{Buy}, \textbf{Hold} or \textbf{Negotiate}. The project also tests
-whether external economic signals, such as the US dollar, interest rates, oil
-and inflation, improve forecast accuracy.
+buy metals and whether a supplier's price is fair. It studies the prices of
+gold and other metals traded on COMEX, predicts the short-term direction of
+gold, and compares a supplier's quote with the expected price range to
+recommend \textbf{Buy}, \textbf{Hold} or \textbf{Negotiate}. The project also
+tests whether external economic signals, such as the US dollar, interest
+rates, oil and inflation, help to predict gold.
 
-This report covers the first deliverable, \emph{Problem Definition and Data
-Foundations}. Its objectives are to:
+This is the final report of the project. It brings together the three
+deliverables, whose objectives were to:
 \begin{enumerate}
   \item define the real-world problem, the target users and why machine
         learning is needed (Phase~1);
   \item collect 16 years of daily market data from public sources with
-        reproducible, logged Python scripts (Phase~2);
-  \item clean the data, engineer features and explore it visually, producing a
-        dataset ready for modelling (Phase~2).
+        reproducible, logged Python scripts, then clean it, engineer features
+        and explore it visually (Phase~2);
+  \item build, tune and compare classical machine learning models and a deep
+        learning model for the five-day direction of gold (Phase~3);
+  \item evaluate the models with robust validation and suitable metrics, and
+        analyse their errors and bias (Phase~4);
+  \item turn the results into Buy, Hold and Negotiate recommendations and
+        deliver them through an application with real-time inference
+        (Phase~5, Track~A);
+  \item document the whole project in one report (Phase~6).
 \end{enumerate}
 
 The report is organised as follows. Section~\ref{sec:problem} defines the
 problem, the target audience and the AI justification. Section~\ref{sec:collection}
-describes the data sources, how the data was collected and what the raw data
-looks like. Section~4 explains how the data was cleaned, and Section~5 presents
-the feature strategy and the exploratory data analysis. Section~\ref{sec:conclusion}
-summarises the results and the plan for the next deliverable. All code is in
-the \texttt{data\_scripts/} folder of the project's GitHub repository.
+describes the data sources and the raw data, Section~\ref{sec:cleaning}
+explains how the data was cleaned, and Section~\ref{sec:features_eda}
+presents the features and the exploratory data analysis.
+Sections~\ref{sec:classical} and~\ref{sec:deep} describe the classical models
+and the LSTM, Section~\ref{sec:evaluation} compares all models on the test
+years, and Section~\ref{sec:error-bias} analyses their errors and bias.
+Section~\ref{sec:recommendation} explains how quotes are turned into
+recommendations, and Section~\ref{sec:application} presents the application.
+Section~\ref{sec:contributions} shows the system architecture and who built
+each part, and Section~\ref{sec:conclusion} summarises the results and future
+work. All code is in the project's GitHub repository.
