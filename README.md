@@ -399,7 +399,7 @@ procurepulse/
 │   ├── figures/               ← raw/, eda/, classical/, deep/, evaluation/, analysis/, architecture/, app/
 │   ├── evidence/              ← collection screenshot and log copies
 │   ├── refs_a.bib, refs_b.bib
-│   └── ProcurePulse_Deliverable1.pdf, ProcurePulse_Deliverable2.pdf
+│   └── ProcurePulse_Deliverable1.pdf, ProcurePulse_Deliverable2.pdf, ProcurePulse_Deliverable3.pdf
 ├── main.py                    ← run the whole pipeline with one command
 ├── requirements.txt
 └── README.md
@@ -410,6 +410,8 @@ procurepulse/
 ---
 
 ## 📄 Report
+
+📕 **Final report (Deliverable 3):** [`report/ProcurePulse_Deliverable3.pdf`](report/ProcurePulse_Deliverable3.pdf)
 
 The technical report is in [`report/`](report/), written in LaTeX.
 
