@@ -150,7 +150,7 @@ with left:
         options = MODEL_NAMES + (["lstm"] if predict_lstm is not None else [])
         model = st.selectbox("5. Model used for the recommendation", options, format_func=LABELS.get)
 
-    clicked = st.button("Check quote", type="primary", use_container_width=True, disabled=prices is None)
+    clicked = st.button("Check quote", type="primary", width="stretch", disabled=prices is None)
 
 inputs = (metal, source, quote, quantity, model, None if prices is None else prices.index[-1])
 
