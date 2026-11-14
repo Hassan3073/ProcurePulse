@@ -52,7 +52,7 @@ def table(name, columns, numeric=()):
 def show_image(name, caption):
     try:
         content = (ROOT / "report/figures" / name).read_bytes()
-        st.image(content, use_container_width=True, alt=caption)
+        st.image(content, width="stretch", alt=caption)
         st.caption(caption)
     except Exception:
         unavailable(name)
