@@ -28,7 +28,7 @@ here.
     User uploads and downloaded prices provide alternative in-memory inputs.
     \item \textbf{Market} --- \texttt{app/views/market.py}: reads
     \texttt{data/processed/cleaned.csv} through
-    \texttt{src.inference.features.load\_builtin\_prices()}.
+    \texttt{src.\allowbreak inference.\allowbreak features.\allowbreak load\_\allowbreak builtin\_\allowbreak prices()}.
     \item \textbf{Model Insights} --- \texttt{app/views/model\_insights.py}:
     reads saved prediction, comparison, tuning, history and bias/segment CSVs
     under \texttt{results/}, together with existing report figures.
@@ -37,14 +37,20 @@ here.
     \texttt{README.md} for the team, and the saved pipeline figure.
 \end{itemize}
 
-The inference modules are \texttt{src.inference.features},
-\texttt{src.inference.classical}, \texttt{src.inference.lstm} and
-\texttt{src.inference.live}. Their main entry points are
-\texttt{build\_features()}, \texttt{predict\_classical()},
-\texttt{predict\_lstm()} and \texttt{download\_latest()}, respectively.
-\texttt{src.recommendation.price\_range.check\_quote()} calls
-\texttt{expected\_range()} and \texttt{recommend()} to produce the action
-and its explanation.
+The inference and recommendation entry points are:
+\begin{itemize}
+    \item \texttt{src.\allowbreak inference.\allowbreak features}:
+    \texttt{build\_\allowbreak features()}.
+    \item \texttt{src.\allowbreak inference.\allowbreak classical}:
+    \texttt{predict\_\allowbreak classical()}.
+    \item \texttt{src.\allowbreak inference.\allowbreak lstm}:
+    \texttt{predict\_\allowbreak lstm()}.
+    \item \texttt{src.\allowbreak inference.\allowbreak live}:
+    \texttt{download\_\allowbreak latest()}.
+    \item \texttt{src.\allowbreak recommendation.\allowbreak price\_\allowbreak range}:
+    \texttt{check\_\allowbreak quote()} calls \texttt{expected\_\allowbreak range()}
+    and \texttt{recommend()} to produce the action and its explanation.
+\end{itemize}
 
 The pages reuse Deliverable 1 transformations and Deliverable 2 weights; they
 do not train models or regenerate evaluation artifacts. Application access
@@ -136,8 +142,6 @@ reports that AI inference could not run and falls back to the price range
 for the handled error cases.
 
 \subsection{Screenshots}
-% Screenshot files were absent when this section was prepared. Guards keep
-% the report compilable without fabricating screenshots or capture dates.
 The following figure slots correspond to the four application pages.
 Their descriptions are verified against the page code and saved data.
 Where a screenshot file is unavailable, the slot explicitly states this;
@@ -233,16 +237,17 @@ From the repository root, with the project environment active, run:
 \begin{verbatim}
 python -m streamlit run app/streamlit_app.py
 \end{verbatim}
-Install the dependencies listed in \texttt{requirements.txt}; it specifies
-\texttt{streamlit>=1.46}, while the inspected environment has Streamlit
-1.67.0. Follow the README's artifact layout: classical \texttt{.joblib}
-bundles in \texttt{models/classical/}, and \texttt{lstm\_best.pt} with
-\texttt{lstm\_config.json} in \texttt{models/deep/}. Keep the cleaned prices,
-feature CSVs, unscaled features and \texttt{scaler.joblib} under
-\texttt{data/processed/}, and retain saved results and figures for the
-diagnostic pages. Starting this interface does not require rerunning the
-README's training pipeline. The README currently documents the pipeline
-command rather than this separate application launch command.
+Install the dependencies in \texttt{requirements.\allowbreak txt}, which
+specifies \texttt{streamlit>=1.46}. The inspected environment has Streamlit
+1.67.0. Follow the README's artifact layout. Keep classical \texttt{.joblib}
+bundles in \texttt{models/\allowbreak classical/}, and
+\texttt{lstm\_\allowbreak best.\allowbreak pt} with
+\texttt{lstm\_\allowbreak config.\allowbreak json} in
+\texttt{models/\allowbreak deep/}. Keep the cleaned prices, feature CSVs,
+unscaled features and \texttt{scaler.\allowbreak joblib} under
+\texttt{data/\allowbreak processed/}. Retain saved results and figures for
+the diagnostic pages. Starting this interface does not require rerunning
+the README's training pipeline.
 
 The predictive signal remains weak. In \texttt{bias\_check.csv}, random
 forest and gradient boosting have a test predicted up-rate of zero: both
